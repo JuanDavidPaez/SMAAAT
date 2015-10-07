@@ -1,4 +1,4 @@
-package simulation;
+package simulation.utils;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
@@ -19,25 +19,27 @@ public class Utils {
         Geometry mark = new Geometry("DebugArrow", arrow);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
+        mat.getAdditionalRenderState().setDepthTest(false);
         mat.setColor("Color", ColorRGBA.Red);
         mark.setMaterial(mat);
         mark.setLocalTranslation(pos);
-        
+
         Quaternion q = new Quaternion();
         q.lookAt(dir, Vector3f.UNIT_Y);
         mark.setLocalRotation(q);
-        
+
         if (node != null) {
             node.attachChild(mark);
         }
         return mark;
     }
 
-    public static Geometry createDebugBox(AssetManager assetManager, Vector3f pos, float radius, Node node) {
-        Box s = new Box(radius,radius,radius);
+    public static Geometry createDebugBox(AssetManager assetManager, Vector3f pos, float side, Node node) {
+        Box s = new Box(side, side, side);
         Geometry mark = new Geometry("DebugBox", s);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         //mat.getAdditionalRenderState().setWireframe(true);
+        mat.getAdditionalRenderState().setDepthTest(false);
         mat.setColor("Color", ColorRGBA.Blue);
         mark.setMaterial(mat);
         mark.setLocalTranslation(pos);
@@ -45,5 +47,26 @@ public class Utils {
             node.attachChild(mark);
         }
         return mark;
+    }
+
+    public static Geometry createDebugSphere(AssetManager assetManager, Vector3f pos, float radius, Node node) {
+        Sphere s = new Sphere(10, 10, radius);
+        Geometry mark = new Geometry("DebugSphere", s);
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.getAdditionalRenderState().setWireframe(true);
+        mat.getAdditionalRenderState().setDepthTest(false);
+        mat.setColor("Color", ColorRGBA.Green);
+        mark.setMaterial(mat);
+        mark.setLocalTranslation(pos);
+        if (node != null) {
+            node.attachChild(mark);
+        }
+        return mark;
+    }
+
+    public static int randomInteger(int min, int max) {
+        XSRandom rand = new XSRandom();
+        int randomNum = rand.nextInt((max - min) + 1) + min;
+        return randomNum;
     }
 }
