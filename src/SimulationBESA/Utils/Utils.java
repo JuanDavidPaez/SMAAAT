@@ -10,6 +10,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.debug.Arrow;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
+import java.io.File;
 
 public class Utils {
 
@@ -68,9 +69,32 @@ public class Utils {
         return mark;
     }
 
+    public static Geometry createCube(AssetManager assetManager, Vector3f pos, Vector3f size, Node node, ColorRGBA color) {
+
+        Vector3f _size = size.clone().divideLocal(2);
+        Vector3f _pos = pos.clone();
+        _pos.setY(_pos.y + _size.y);
+        Box s = new Box(_size.x, _size.y, _size.z);
+        Geometry geo = new Geometry("Cube", s);
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);
+        geo.setMaterial(mat);
+        geo.setLocalTranslation(_pos);
+        if (node != null) {
+            node.attachChild(geo);
+        }
+        return geo;
+    }
+
     public static int randomInteger(int min, int max) {
         XSRandom rand = new XSRandom();
         int randomNum = rand.nextInt((max - min) + 1) + min;
         return randomNum;
+    }
+
+    public static String getResourceFilePath(String fileName) {
+        ClassLoader classLoader = Utils.class.getClassLoader();
+        File f = new File(classLoader.getResource(fileName).getFile());
+        return f.getAbsolutePath();
     }
 }

@@ -76,7 +76,7 @@ public class Agent extends AgentBESA {
     public void sendWorldRegisterRequest() {
         RegisterAgentData data = new RegisterAgentData();
         data.agentAlias = this.getAlias();
-        data.position = new Vector3f(4, 0, 2);
+        data.position = new Vector3f(3, 0, 2);
         data.direction = new Vector3f(0, 0, 1);
         Agent.sendMessage(RegisterAgentGuard.class, Const.WorldAgentAlias, data);
     }
@@ -86,7 +86,7 @@ public class Agent extends AgentBESA {
         i.agentAlias = this.getAlias();
         Agent.sendMessage(WorldInfoRequestGuard.class, Const.WorldAgentAlias, i);
     }
-    
+
     public void sendMovementRequest(MoveData moveData) {
         moveData.agentAlias = this.getAlias();
         Agent.sendMessage(WorldInfoRequestGuard.class, Const.WorldAgentAlias, moveData);
@@ -125,10 +125,13 @@ public class Agent extends AgentBESA {
                     || rs.srLeftF.collideWithObject && !rs.srLeftR.collideWithObject) {
                 move.forward = true;
             }
-            /*Sensor izquierda frontal no detecta pero sensor iaquierdo trasero si detecta: Gira  90º*/
+            /*Sensor izquierda frontal no detecta pero sensor izquierdo trasero si detecta: Gira  90º*/
             if (!rs.srLeftF.collideWithObject && rs.srLeftR.collideWithObject) {
                 Quaternion rotate = new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y);
                 move.rotation = rotate;
+            }
+            if (move.rotation == null && move.forward == false) {
+                move.forward = true;
             }
         }
         sendMovementRequest(move);

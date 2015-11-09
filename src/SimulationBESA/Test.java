@@ -1,6 +1,12 @@
 package SimulationBESA;
 
+import SimulationBESA.Utils.Utils;
+import Tools.FloorGenerator.FloorData;
+import Tools.FloorGenerator.FloorEditor;
+import Tools.FloorGenerator.GridPoint;
+import Tools.FloorGenerator.GridRegion;
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.AssetManager;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
@@ -9,12 +15,23 @@ import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.DirectionalLight;
+import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.shape.Box;
+import com.jme3.scene.shape.Quad;
 import com.jme3.system.AppSettings;
+import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Test extends SimpleApplication implements ActionListener {
 
@@ -27,20 +44,23 @@ public class Test extends SimpleApplication implements ActionListener {
         app.setSettings(settings);
         app.start();
     }
-    
     private DirectionalLight cameraLight;
     private BulletAppState bulletAppState;
     private Spatial floor;
-    private RayTrace tracer;
 
     @Override
     public void simpleInitApp() {
+
+        viewPort.setBackgroundColor(new ColorRGBA(0f, 0f, 0f, 1f));
+        flyCam.setMoveSpeed(20);
+
         floor = assetManager.loadModel("Models/floor.j3o");
         floor.setName("floor");
+        floor.setLocalTranslation(10, 0, 10);
         rootNode.attachChild(floor);
 
         cam.setLocation(new Vector3f(-6, 11, 7));
-        cam.lookAt(floor.getWorldTranslation(), Vector3f.UNIT_Y);
+        cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
 
         setupLighting();
         setupKeys();
@@ -53,10 +73,16 @@ public class Test extends SimpleApplication implements ActionListener {
         RigidBodyControl floorRigidBody = new RigidBodyControl(floorShape, 0);
         floor.addControl(floorRigidBody);
         bulletAppState.getPhysicsSpace().add(floorRigidBody);
-        
-        tracer = new RayTrace(rootNode, cam, 160, 128);
-        tracer.show();
-        tracer.update();
+
+        String filePath = Utils.getResourceFilePath("Smaaat/floor1.smaaat");
+        Node floorNode = FloorEditor.createFloorGeometryNode(filePath, assetManager);
+        getRootNode().attachChild(floorNode);
+
+        CollisionShape floorShape2 = CollisionShapeFactory.createMeshShape(floorNode);
+        RigidBodyControl floorRigidBody2 = new RigidBodyControl(floorShape2, 0);
+        floorNode.addControl(floorRigidBody2);
+        bulletAppState.getPhysicsSpace().add(floorRigidBody2);
+
     }
 
     public void setupLighting() {
@@ -69,7 +95,6 @@ public class Test extends SimpleApplication implements ActionListener {
     @Override
     public void simpleUpdate(float tpf) {
         cameraLight.setDirection(cam.getDirection().normalizeLocal());
-        tracer.update();
     }
 
     @Override
@@ -98,20 +123,5 @@ public class Test extends SimpleApplication implements ActionListener {
         }
         if (name.equals("KEY_3")) {
         }
-
-    }
-    
-    public void estimateWalkableFloorSurface(){
-    
-    
-    }
-
-    public class FloorGridPoint {
-        int row;
-        int column;
-        float x;
-        float y;
-        float height;
-        boolean isFloor;
     }
 }

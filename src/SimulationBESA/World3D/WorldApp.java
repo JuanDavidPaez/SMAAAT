@@ -4,6 +4,7 @@ import BESA.ExceptionBESA;
 import BESA.Kernel.System.AdmBESA;
 import SimulationBESA.Utils.Const;
 import SimulationBESA.Utils.Utils;
+import Tools.FloorGenerator.FloorEditor;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.PhysicsSpace;
@@ -50,11 +51,12 @@ public class WorldApp extends SimpleApplication implements ActionListener {
 
         viewPort.setBackgroundColor(new ColorRGBA(0f, 0f, 0f, 1f));
         flyCam.setMoveSpeed(20);
-        
-        floor = assetManager.loadModel("Models/floor.j3o");
+               
+        String floorFilePath = Utils.getResourceFilePath(Const.SmaaatFloorFileName);
+        floor = FloorEditor.createFloorGeometryNode(floorFilePath, assetManager);
         floor.setName("floor");
         rootNode.attachChild(floor);
-
+             
         //cam.setLocation(new Vector3f(0, 10, 10));
         cam.setLocation(new Vector3f(-6, 11, 7));
         cam.lookAt(floor.getWorldTranslation(), Vector3f.UNIT_Y);
