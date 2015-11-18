@@ -1,6 +1,5 @@
 package Tests;
 
-import Utils.Const;
 import Utils.Utils;
 import World3D.Floor.GridPoint;
 import java.awt.event.KeyEvent;

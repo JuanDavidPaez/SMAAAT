@@ -17,7 +17,7 @@ public class GridPoint {
     public String toString() {
         return "X: " + x + " Y: " + y;
     }
-    
+
     /**
      * Estimate the absolute distance between two points, (result do not
      * includes direction)
@@ -50,9 +50,7 @@ public class GridPoint {
 
     @Override
     public boolean equals(Object o) {
-        GridPoint p = (GridPoint)o;
+        GridPoint p = (GridPoint) o;
         return (this.x == p.x && this.y == p.y);
     }
-    
-    
 }

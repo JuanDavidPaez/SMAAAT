@@ -15,8 +15,6 @@ import Utils.Utils;
 import SMA.World.Guards.WorldInfoRequestGuard;
 import World3D.Character3D;
 import World3D.Exit;
-import World3D.Floor.FloorData;
-import World3D.RobotSensors;
 import com.jme3.math.Vector3f;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;

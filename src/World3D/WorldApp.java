@@ -5,7 +5,6 @@ import BESA.Kernel.System.AdmBESA;
 import Utils.Const;
 import Utils.Utils;
 import World3D.Floor.Floor3D;
-import World3D.Floor.FloorEditor;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.PhysicsSpace;

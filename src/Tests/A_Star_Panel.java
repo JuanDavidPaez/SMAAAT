@@ -1,12 +1,10 @@
 package Tests;
 
 import AI.Pathfinding.A_Star;
-import World3D.Floor.FloorData;
 import World3D.Floor.FloorEditor;
 import World3D.Floor.GridPoint;
 import java.awt.Color;
 import java.awt.Graphics;
-import java.util.ArrayList;
 import java.util.List;
 
 public class A_Star_Panel extends FloorEditor {

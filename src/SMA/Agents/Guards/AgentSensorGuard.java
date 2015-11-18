@@ -5,7 +5,6 @@ import BESA.Kernel.Agent.GuardBESA;
 import SMA.Agents.Agent;
 import SMA.Agents.AgentState;
 import SMA.GuardsData.InfoRequestData;
-import SMA.GuardsData.Message;
 import SMA.GuardsData.MoveData;
 import SMA.GuardsData.RegisterAgentData;
 import java.lang.reflect.Type;
