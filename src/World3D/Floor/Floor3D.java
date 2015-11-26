@@ -66,7 +66,7 @@ public class Floor3D {
         return new Vector3f(x, 0, z);
     }
 
-    public FloorData getFloorPartialView(GridPoint center, int viewRadius) {
-        return floorData.getFloorPartialView(center, viewRadius);
+    public FloorDataChunk getFloorDataPartialView(GridPoint center, int viewRadius) {
+        return floorData.getFloorDataChunk(center, viewRadius);
     }
 }

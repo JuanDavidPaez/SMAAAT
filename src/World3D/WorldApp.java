@@ -65,6 +65,7 @@ public class WorldApp extends SimpleApplication implements ActionListener {
         setupKeys();
 
         bulletAppState = new BulletAppState();
+//        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bulletAppState);
         bulletAppState.setDebugEnabled(true);
 

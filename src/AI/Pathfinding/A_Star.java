@@ -39,8 +39,10 @@ public class A_Star {
     }
 
     public void addObstacles(int[] obstaclesIds) {
-        for (int i : obstaclesIds) {
-            addObstacle(i);
+        if(obstaclesIds != null){
+            for (int i : obstaclesIds) {
+                addObstacle(i);
+            }
         }
     }
 

@@ -113,19 +113,18 @@ public class WorldAgent extends AgentBESA implements ActionListener {
         if (agentIsRegistered(agentAlias)) {
             final String nodeName = agentAlias;
             final InfoRequestData ird = i;
-            execAsyncInWorldThread(new Callable() {
-                public Object call() throws Exception {
+            /*execAsyncInWorldThread(new Callable() {
+                public Object call() throws Exception {*/
                     Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(nodeName)).getUserData(Const.Character);
-                    c.updateDistanceSensorsData();
-                    ird.robotSensors =  c.robotSensors.clone();
+                    //c.updateDistanceSensorsData();
+                    //ird.robotSensors =  c.robotSensors.clone();
                     ird.partialFloorView  = c.getCurrentFloorView();
                     ird.position = c.getPosition();
                     ird.direction = c.getDirection();
-                    return null;
+                    /*return null;
                 }
-            });
+            });*/
             
-            i.robotSensors = ird.robotSensors;
             i.partialFloorView = ird.partialFloorView;
             i.updateToReply();
             Agent.sendMessage(i);
@@ -136,13 +135,13 @@ public class WorldAgent extends AgentBESA implements ActionListener {
         final String agentAlias = md.fromAgentAlias();
         if (agentIsRegistered(agentAlias)) {
             final String nodeName = agentAlias;
-            execAsyncInWorldThread(new Callable<Void>() {
-                public Void call() throws Exception {
+            /*execAsyncInWorldThread(new Callable<Void>() {
+                public Void call() throws Exception {*/
                     Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(nodeName)).getUserData(Const.Character);
                     c.moveCharacter(md);
-                    return null;
+                    /*return null;
                 }
-            });
+            });*/
             md.updateToReply();
             Agent.sendMessage(md);
         }

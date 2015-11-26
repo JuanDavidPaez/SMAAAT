@@ -91,7 +91,7 @@ public class Utils {
         Vector3f _pos = pos.clone();
         _pos.setX(_pos.x - xSize/2 * resolution);
         _pos.setZ(_pos.z - ySize/2 * resolution);
-        Grid grid = new Grid(xSize, ySize, resolution);
+        Grid grid = new Grid(ySize+1, xSize+1, resolution);
         Geometry g = new Geometry("Grid", grid);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);

@@ -1,5 +1,6 @@
 package World3D.Floor;
 
+import World3D.Floor.FloorPoint.FloorPointType;
 import com.google.gson.Gson;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -79,16 +80,6 @@ public class FloorEditor extends JPanel {
 
     private void floorSizeChanged() {
         this.setPreferredSize(new Dimension(getPixelWidth() + 10, getPixelHeight() + 10));
-        /*Remover las paredes que estan por fuera de el tamaño del piso*/
-        if (getWalls() != null) {
-            for (Iterator<GridPoint> iterator = getWalls().iterator(); iterator.hasNext();) {
-                GridPoint p = iterator.next();
-                if (p.x >= getXSize() || p.y >= getYSize()) {
-                    iterator.remove();
-                }
-            }
-            //addFloorSurroundingWalls();
-        }
         this.repaint();
     }
 
@@ -112,13 +103,8 @@ public class FloorEditor extends JPanel {
                 filePath += ext;
             }
 
-            FloorData data = new FloorData();
-            data.pxResolution = this.getPixelResolution();
-            data.XSize = this.getXSize();
-            data.YSize = this.getYSize();
-            data.walls = this.getWalls();
             Gson gson = new Gson();
-            String jsonData = gson.toJson(data, FloorData.class);
+            String jsonData = gson.toJson(this.floorData, FloorData.class);
 
             Writer writer = null;
             try {
@@ -143,12 +129,10 @@ public class FloorEditor extends JPanel {
         FloorData fData = FloorData.loadDataFromFile(filePath);
 
         if (fData != null) {
-            floorData = new FloorData();
-            floorData.pxResolution = fData.pxResolution;
-            this.setXandYSize(fData.XSize, fData.YSize);
-            if (fData.walls != null && fData.walls.size() > 0) {
-                for (GridPoint w : fData.walls) {
-                    this.addWall(w);
+            floorData = new FloorData(fData.XSize, fData.YSize, fData.pxResolution);
+            if (fData.points != null && fData.points.length > 0) {
+                for (FloorPoint p : fData.points) {
+                    this.floorData.setPointType(p, p.getType());
                 }
             }
             repaint();
@@ -249,13 +233,14 @@ public class FloorEditor extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        paintBackGroundGrid(g);
-        paintFloorWalls(g);
+        paintFloorPoints(g);
         paintAditionalPaths(g);
+        paintBackGroundGrid(g);
         paintHighlightedPoints(g);
     }
 
     protected void paintBackGroundGrid(Graphics g) {
+        g.setColor(Color.BLACK);
         /*Pintar Lineas verticales*/
         for (int i = 0; i <= this.getXSize(); i++) {
             g.drawLine(gridToPixel(i), 0, gridToPixel(i), gridToPixel(getYSize()));
@@ -266,20 +251,29 @@ public class FloorEditor extends JPanel {
         }
     }
 
-    protected void paintFloorWalls(Graphics g) {
-        if (getWalls().size() > 0) {
-            for (GridPoint w : getWalls()) {
-                drawRectangle(g, w, null, 0, Color.BLACK);
+    protected void paintFloorPoints(Graphics g) {
+        for (FloorPoint p : this.floorData.points) {
+            Color color = null;
+
+            if (p.getType() == FloorPointType.Wall) {
+                color = Color.BLACK;
+            } else if (p.getType() == FloorPointType.Empty) {
+                color = Color.WHITE;
+            } else if (p.getType() == FloorPointType.Unknown) {
+                color = Color.GRAY;
             }
+            else {
+                throw new RuntimeException("No se ha especificado color para el tipo de objeto " + p.getType());
+            }
+            drawRectangle(g, p, null, 0, color);
         }
     }
-    
-    protected void paintAditionalPaths(Graphics g){
-        if(floorData.paths != null && floorData.paths.size() > 0){
+
+    protected void paintAditionalPaths(Graphics g) {
+        if (floorData.paths != null && floorData.paths.size() > 0) {
             for (Map.Entry<String, Path> e : floorData.paths.entrySet()) {
                 Path p = e.getValue();
-                if(p != null && p.points.size() > 0)
-                {
+                if (p != null && p.points.size() > 0) {
                     for (GridPoint gp : p.points) {
                         drawRectangle(g, gp, p.color, 0, p.color);
                     }
@@ -287,7 +281,7 @@ public class FloorEditor extends JPanel {
             }
         }
     }
-    
+
     protected void paintHighlightedPoints(Graphics g) {
         if (this.mouseHoverGridPoint != null) {
             drawRectangle(g, mouseHoverGridPoint, Color.BLUE, 2, null);
@@ -357,10 +351,6 @@ public class FloorEditor extends JPanel {
 
     public void setAllowEdition(boolean b) {
         this.allowEdition = b;
-    }
-
-    protected List<GridPoint> getWalls() {
-        return floorData.walls;
     }
     //</editor-fold>
 }

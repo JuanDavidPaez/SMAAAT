@@ -7,6 +7,7 @@ import World3D.Controls.BulletControl;
 import World3D.Controls.WalkerNavControl;
 import World3D.Floor.Floor3D;
 import World3D.Floor.FloorData;
+import World3D.Floor.FloorDataChunk;
 import World3D.Floor.GridPoint;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
@@ -57,8 +58,7 @@ public class Character3D implements Savable, PhysicsCollisionListener {
 
         node.setLocalTranslation(position);
         node.attachChild(createSpatialGeometry(name));
-        Spatial arrow = Utils.createDebugArrow(app.getAssetManager(), Vector3f.ZERO, new Vector3f(0, 0, 0.5f), null);
-        node.attachChild(arrow);
+        Spatial arrow = Utils.createDebugArrow(app.getAssetManager(), Vector3f.ZERO, new Vector3f(0, 0, 0.5f), node);
         arrow.getLocalTranslation().setY(height / 2);
 
         ((Spatial) (node)).setUserData(Const.Character, this);
@@ -225,7 +225,7 @@ public class Character3D implements Savable, PhysicsCollisionListener {
         if (live <= 0) {
             killCharacter();
         } else {
-            checkSeenObjects();
+            //checkSeenObjects();
         }
     }
 
@@ -323,9 +323,9 @@ public class Character3D implements Savable, PhysicsCollisionListener {
         control.enqueueMovementRequest(md);
     }
 
-    public FloorData getCurrentFloorView() {
+    public FloorDataChunk getCurrentFloorView() {
         Vector3f position = node.getWorldTranslation();
         GridPoint p = getFloor3D().Vector3fToGridPoint(position);
-        return getFloor3D().getFloorPartialView(p, sightRange);
+        return getFloor3D().getFloorDataPartialView(p, sightRange);
     }
 }

@@ -2,6 +2,7 @@ package Utils;
 
 public final class Const {
 
+    public static final boolean inDebugMode = true;
     public static final double BESApassword = 0.91;
     public static final String WorldAgentAlias = "WorldAgent";
     public static final String Character = "Character";

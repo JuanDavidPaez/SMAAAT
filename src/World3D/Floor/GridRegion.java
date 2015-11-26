@@ -26,7 +26,7 @@ public class GridRegion {
             }
         }
         /*Translado de puntos desde la lista a la matriz*/
-        for (GridPoint w : floorData.walls) {
+        for (GridPoint w : floorData.getWalls()) {
             wallArray[w.y][w.x] = 0;
         }
 

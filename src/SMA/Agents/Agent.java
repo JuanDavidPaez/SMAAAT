@@ -21,6 +21,7 @@ import Utils.Const;
 import SMA.World.Guards.WorldInfoRequestGuard;
 import World3D.Floor.Floor3D;
 import World3D.Floor.FloorData;
+import World3D.Floor.FloorPoint;
 import World3D.Floor.GridPoint;
 import World3D.Floor.Path;
 import World3D.RobotSensors;
@@ -106,34 +107,45 @@ public class Agent extends AgentBESA {
     }
 
     public void processInfoRequest(InfoRequestData i) {
+        boolean floorDataChanged = false;
         AgentState state = getState();
         state.position = i.position;
         state.direction = i.direction;
         if (state.floor == null && i.partialFloorView != null) {
-            state.floor = new FloorData(i.partialFloorView.XSize, i.partialFloorView.YSize, i.partialFloorView.pxResolution);
-            state.floor.openInJFrame();
+            floorDataChanged = true;
+            state.floor = new FloorData(i.partialFloorView.getParentFloorXSize(),
+                    i.partialFloorView.getParentFloorYSize(),
+                    i.partialFloorView.pxResolution, FloorPoint.FloorPointType.Unknown);
+            if (Const.inDebugMode) {
+                //state.floor.showInJFrame();
+            }
+        } else if (i.partialFloorView != null) {
+            floorDataChanged = state.floor.updateDataFromChunk(i.partialFloorView);
         }
-        state.floor.mergeFloorData(i.partialFloorView);
-        updateMovementIntentions();
+        updateMovementIntentions(floorDataChanged);
     }
 
-    private void updateMovementIntentions() {
+    private void updateMovementIntentions(boolean floorDataChanged) {
         AgentState state = getState();
 
         if (state.globalTargetPosition != null) {
             GridPoint currentPositionPoint = Floor3D.Vector3fToGridPoint(state.position, state.floor.XSize, state.floor.YSize);
             GridPoint globalTargetPositionPoint = Floor3D.Vector3fToGridPoint(state.globalTargetPosition, state.floor.XSize, state.floor.YSize);
 
-            if (state.currentPatrolPath != null && !isPatrolPathStillValid()) {
-                state.currentPatrolPath = null;
+            if (state.currentPatrolPath != null && floorDataChanged) {
+                if (!isPatrolPathStillValid()) {
+                    state.currentPatrolPath = null;
+                }
             }
 
             if (state.currentPatrolPath == null) {
                 FloorData floor = state.floor;
                 Path movementPath = findPathAStarAlgorithm(floor, currentPositionPoint, globalTargetPositionPoint);
                 if (movementPath != null) {
-                    floor.paths.put("Path", movementPath);
                     state.currentPatrolPath = new PatrolPath(movementPath);
+                    if (Const.inDebugMode) {
+                        floor.paths.put("Path", movementPath);
+                    }
                 }
             }
 
@@ -153,7 +165,7 @@ public class Agent extends AgentBESA {
     private Path findPathAStarAlgorithm(FloorData floor, GridPoint currentPosition, GridPoint targetPosition) {
         Path path = null;
         A_Star aStar = new A_Star(floor.XSize, floor.YSize);
-        aStar.addObstacles(floor.floorWallsToArray());
+        aStar.addObstacles(floor.floorObstaclesToArray());
         int[] pathArray = aStar.findPath(floor.gridPoint2ArrayIndex(currentPosition), floor.gridPoint2ArrayIndex(targetPosition));
         if (pathArray != null && pathArray.length > 0) {
             path = new Path(floor.arrayIndex2GridPointList(pathArray), Color.YELLOW);
@@ -181,6 +193,7 @@ public class Agent extends AgentBESA {
         }
     }
 
+    @Deprecated
     public void sendMoveRequest_WallFollower(RobotSensors rs) {
 
         MoveData move = new MoveData(this.getAlias(), Const.WorldAgentAlias, WorldInfoRequestGuard.class);
@@ -233,11 +246,10 @@ public class Agent extends AgentBESA {
         boolean pathValid = true;
         AgentState state = getState();
         for (PathPoint pp : state.currentPatrolPath.points) {
-            for (GridPoint w : state.floor.walls) {
-                if (w.equals(pp)) {
-                    pathValid = false;
-                    break;
-                }
+            FloorPoint p = state.floor.getPointFromCoordinates(pp.x, pp.y);
+            if (state.floor.isObstacle(p)) {
+                pathValid = false;
+                break;
             }
         }
         return pathValid;

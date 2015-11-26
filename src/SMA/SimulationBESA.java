@@ -11,12 +11,12 @@ public class SimulationBESA {
 
     AdmBESA admLocal;
     WorldAgent worldAgent;
-    
+
     public static void main(String[] args) {
         SimulationBESA simulationBESA = new SimulationBESA();
     }
 
-    public SimulationBESA(){
+    public SimulationBESA() {
 
         admLocal = AdmBESA.getInstance();
         worldAgent = WorldAgent.createWorldAgent();
@@ -29,11 +29,16 @@ public class SimulationBESA {
     }
 
     protected void worldIsReady() {
-        
-        worldAgent.addExitObject();
-        
-        Agent explorer1 = Agent.CreateAgent("Explorer1",new Vector3f(0,0,0), new Vector3f(0,0,1));
-        explorer1.start();
 
+        worldAgent.addExitObject();
+        float s = 0.5f;
+        int z = 0;
+        for (int i = 0; i < 1; i++) {
+            for (int j = 0; j < 1; j++) {
+                z++;
+                Agent explorer1 = Agent.CreateAgent("Explorer" + z, new Vector3f(j * s, 0, -3 + i * s), new Vector3f(0, 0, 1));
+                explorer1.start();
+            }
+        }
     }
 }

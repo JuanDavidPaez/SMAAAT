@@ -41,7 +41,7 @@ public class A_Star_Panel extends FloorEditor {
 
     public void start() {
         A_Star astar = new A_Star(this.getXSize(), this.getYSize());
-        astar.addObstacles(floorData.floorWallsToArray());
+        astar.addObstacles(floorData.floorObstaclesToArray());
         int[] pathArray = astar.findPath(floorData.gridPoint2ArrayIndex(start), floorData.gridPoint2ArrayIndex(end));
         path = floorData.arrayIndex2GridPointList(pathArray);
         repaint();        

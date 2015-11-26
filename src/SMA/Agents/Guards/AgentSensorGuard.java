@@ -21,11 +21,6 @@ public class AgentSensorGuard extends GuardBESA {
 
         if (dataType == RegisterAgentData.class) {
             state.agentRegisteredInWorld = true;
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(AgentSensorGuard.class.getName()).log(Level.SEVERE, null, ex);
-            }
             ((Agent) agent).sendWorldInfoRequest();
         }
 
