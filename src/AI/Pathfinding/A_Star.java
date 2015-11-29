@@ -39,7 +39,7 @@ public class A_Star {
     }
 
     public void addObstacles(int[] obstaclesIds) {
-        if(obstaclesIds != null){
+        if (obstaclesIds != null) {
             for (int i : obstaclesIds) {
                 addObstacle(i);
             }
@@ -59,7 +59,15 @@ public class A_Star {
         openSet.add(startNodeId);
 
         while (openSet.size() > 0) {
-            Collections.sort(openSet, new NodeCostComparator());
+            String exdebug = "";
+            try {
+                exdebug = printCostException(openSet);
+                Collections.sort(openSet, new NodeCostComparator());
+            } catch (Exception ex) {
+                System.out.println(exdebug);
+                throw new RuntimeException(ex.toString());
+            }
+
             int currentNodeId = openSet.get(0);
             openSet.remove(0);
             closedSet.add(currentNodeId);
@@ -76,8 +84,7 @@ public class A_Star {
                     float newGCost = nodes[currentNodeId].getGcost() + (diagonal ? diagonalCost : normalCost);
                     if (!openSet.contains(neighbour)) {
                         openSet.add(neighbour);
-                    }
-                    else if (newGCost >= nNode.getGcost()) {
+                    } else if (newGCost >= nNode.getGcost()) {
                         continue;
                     }
                     nNode.setParentNodeId(currentNodeId);
@@ -97,10 +104,10 @@ public class A_Star {
             id = nodes[id].getParentNodeId();
             auxpath.add(id);
         }
-        if(auxpath.size() > 0){
+        if (auxpath.size() > 0) {
             path = new int[auxpath.size()];
             int c = 0;
-            for (int i = auxpath.size()-1; i >= 0; i--) {
+            for (int i = auxpath.size() - 1; i >= 0; i--) {
                 path[c] = auxpath.get(i);
                 c++;
             }
@@ -122,9 +129,9 @@ public class A_Star {
         ids[3] = nodeId + 1;//right
         /*Solo 4 vecinos*/
         /*ids[4] = nodeId - XSize - 1;//upleft
-        ids[5] = nodeId - XSize + 1;//upright
-        ids[6] = nodeId + XSize - 1;//downleft
-        ids[7] = nodeId + XSize + 1;//downright*/
+         ids[5] = nodeId - XSize + 1;//upright
+         ids[6] = nodeId + XSize - 1;//downleft
+         ids[7] = nodeId + XSize + 1;//downright*/
         for (int i : ids) {
             if (i >= 0 && i < nodes.length) {
                 if (!nodes[i].getType().equals(AsNodeType.Obstacle)) {
@@ -160,5 +167,14 @@ public class A_Star {
 
     public int[] getPath() {
         return path;
+    }
+
+    protected String printCostException(List<Integer> set) {
+        String str = "";
+        for (Integer i : set) {
+            str += (i + ". F: " + nodes[i].getFcost() + " H: " + nodes[i].getHcost() + " G: " + nodes[i].getGcost());
+            str += "\r\n";
+        }
+        return str;
     }
 }

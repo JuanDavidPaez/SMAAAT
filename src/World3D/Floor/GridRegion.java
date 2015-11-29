@@ -17,7 +17,7 @@ public class GridRegion {
 
     public static List<GridRegion> floorWallPointsToRegions(FloorData floorData) {
         List<GridRegion> regions = new ArrayList<GridRegion>();
-        int[][] wallArray = new int[floorData.XSize][floorData.YSize];
+        int[][] wallArray = new int[floorData.YSize][floorData.XSize];
 
         /*Inicialización en -1*/
         for (int i = 0; i < wallArray.length; i++) {

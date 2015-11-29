@@ -8,10 +8,12 @@ import SMA.GuardsData.InfoRequestData;
 import SMA.GuardsData.MoveData;
 import SMA.GuardsData.RegisterAgentData;
 import java.lang.reflect.Type;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.TimeUnit;
 
 public class AgentSensorGuard extends GuardBESA {
+
+    int count = 0;
+    long lastTime = 0;
 
     @Override
     public void funcExecGuard(EventBESA ebesa) {
@@ -25,9 +27,10 @@ public class AgentSensorGuard extends GuardBESA {
         }
 
         if (dataType == InfoRequestData.class) {
+            //addTick();
             InfoRequestData i = (InfoRequestData) ebesa.getData();
             if (i != null) {
-                ((Agent) agent).processInfoRequest(i);
+                ((Agent) agent).processWorldInfoResponse(i);
             } else {
                 ((Agent) agent).sendWorldInfoRequest();
             }
@@ -36,6 +39,15 @@ public class AgentSensorGuard extends GuardBESA {
         if (dataType == MoveData.class) {
             ((Agent) agent).sendWorldInfoRequest();
         }
+    }
 
+    private void addTick() {
+        long time = System.currentTimeMillis();
+        count++;
+        if (count == 0 || TimeUnit.MILLISECONDS.toSeconds(time - lastTime) >= 1) {
+            lastTime = time;
+            System.out.println(count + " executions in 1 seconds");
+            count = 0;
+        }
     }
 }

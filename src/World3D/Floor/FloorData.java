@@ -1,8 +1,8 @@
 package World3D.Floor;
 
+import Utils.Utils;
 import World3D.Floor.FloorPoint.FloorPointType;
 import com.google.gson.Gson;
-import com.jme3.system.Annotations;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,22 +11,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
 
 public class FloorData {
-    
+
     public int pxResolution;
     public int XSize;
     public int YSize;
     public FloorPoint[] points;
-    public Map<String, Path> paths = new HashMap();
-    
+    private transient Map<String, Path> paths = new HashMap();
+    public transient PaintObjectsSupplier pointsSupplier;
+
     public FloorData(int xSize, int ySize, int resolution) {
         this(xSize, ySize, resolution, FloorPointType.Empty);
     }
-    
+
     public FloorData(int xSize, int ySize, int resolution, FloorPointType initializationType) {
         this.XSize = xSize;
         this.YSize = ySize;
@@ -34,7 +36,7 @@ public class FloorData {
         points = new FloorPoint[XSize * YSize];
         initPoints(initializationType);
     }
-    
+
     private void initPoints(FloorPointType initializationType) {
         int x = 0;
         int y = 0;
@@ -48,20 +50,24 @@ public class FloorData {
             }
         }
     }
-    
+
     public FloorPoint getPointFromId(int id) {
         return this.points[id];
     }
-    
+
     public FloorPoint getPointFromCoordinates(int x, int y) {
         int id = (XSize * y) + x;
         return getPointFromId(id);
     }
-    
+
+    public FloorPoint getPointFromCoordinates(GridPoint gp) {
+        return getPointFromCoordinates(gp.x, gp.y);
+    }
+
     public void setPointType(GridPoint p, FloorPointType type) {
         getPointFromCoordinates(p.x, p.y).setType(type);
     }
-    
+
     public void addWall(GridPoint p) {
         if (p != null) {
             if (p.x >= 0 && p.y >= 0 && p.x < XSize && p.y < YSize) {
@@ -69,7 +75,7 @@ public class FloorData {
             }
         }
     }
-    
+
     public void addWalls(List<GridPoint> list) {
         if (list != null && list.size() > 0) {
             for (GridPoint w : list) {
@@ -77,13 +83,13 @@ public class FloorData {
             }
         }
     }
-    
+
     public void removeWall(GridPoint p) {
         if (p != null) {
             setPointType(p, FloorPointType.Empty);
         }
     }
-    
+
     public List<FloorPoint> getWalls() {
         List<FloorPoint> walls = new ArrayList<FloorPoint>();
         for (FloorPoint p : points) {
@@ -93,37 +99,51 @@ public class FloorData {
         }
         return walls;
     }
-    
+
     public int[] floorObstaclesToArray() {
-        int[] obstacles = null;
-        List<FloorPoint> list = new ArrayList<FloorPoint>();
+        List<Integer> list = new ArrayList<Integer>();
         for (FloorPoint p : points) {
             if (isObstacle(p)) {
-                list.add(p);
+                list.add(p.getId());
             }
         }
-        
+        if(list.size() > 0){
+            int[] obstacles = Utils.integerListToIntArray(list);
+            return obstacles;
+        }
+        return null;
+    }
+
+    public int[] walkablePointsToArray() {
+        int[] pointArray = null;
+        List<Integer> list = new ArrayList<Integer>();
+        for (FloorPoint p : points) {
+            if (isWalkable(p)) {
+                list.add(p.getId());
+            }
+        }
+
         if (list != null && list.size() > 0) {
-            obstacles = new int[list.size()];
+            pointArray = new int[list.size()];
             int i = 0;
-            for (FloorPoint p : list) {
-                obstacles[i] = p.getId();
+            for (Integer x : list) {
+                pointArray[i] = x;
                 i++;
             }
         }
-        return obstacles;
+        return pointArray;
     }
-    
+
     public int gridPoint2ArrayIndex(GridPoint p) {
         return p.x + (p.y * XSize);
     }
-    
+
     public GridPoint arrayIndex2GridPoint(int idx) {
         int y = (int) (idx / XSize);
         int x = idx - (y * XSize);
         return new GridPoint(x, y);
     }
-    
+
     public List<GridPoint> arrayIndex2GridPointList(int[] pathArray) {
         List<GridPoint> path = null;
         if (pathArray != null && pathArray.length > 0) {
@@ -134,14 +154,14 @@ public class FloorData {
         }
         return path;
     }
-    
+
     public FloorDataChunk getFloorDataChunk(GridPoint center, int viewRadius) {
         FloorDataChunk fdc = null;
         if (viewRadius > 0 && center.x > 0 && center.x < XSize && center.y > 0 && center.y < YSize) {
             List<FloorPoint> chunkList = new ArrayList<FloorPoint>();
             GridPoint p1 = new GridPoint(center.x - viewRadius, center.y - viewRadius);
             GridPoint p2 = new GridPoint(center.x + viewRadius, center.y + viewRadius);
-            
+
             if (p1.x < 0) {
                 p1.x = 0;
             }
@@ -163,7 +183,7 @@ public class FloorData {
         }
         return fdc;
     }
-    
+
     public boolean updateDataFromChunk(FloorDataChunk c) {
         boolean dataChanged = false;
         if (this.XSize != c.getParentFloorXSize() || this.YSize != c.getParentFloorYSize()) {
@@ -180,9 +200,9 @@ public class FloorData {
         }
         return dataChanged;
     }
-    
+
     public void showInJFrame() {
-        
+
         final FloorEditor panel = new FloorEditor(this);
         panel.setAllowEdition(false);
         Thread t = new Thread(new Runnable() {
@@ -198,7 +218,7 @@ public class FloorData {
         });
         t.start();
     }
-    
+
     public static FloorData loadDataFromFile(String filePath) {
         FloorData floorData = null;
         try {
@@ -210,8 +230,43 @@ public class FloorData {
         }
         return floorData;
     }
-    
+
     public boolean isObstacle(FloorPoint p) {
         return p.getType().equals(FloorPointType.Wall);
+    }
+
+    public boolean isWalkable(FloorPoint p) {
+        return (p.getType().equals(FloorPointType.Empty) || p.getType().equals(FloorPointType.Unknown));
+    }
+
+    public int[] getPointsArray(Set<FloorPointType> filterTypes) {
+        int[] pointArray = null;
+        List<Integer> list = new ArrayList<Integer>();
+        for (FloorPoint p : points) {
+            if (filterTypes.contains(p.getType())) {
+                list.add(p.getId());
+            }
+        }
+        if (list != null && list.size() > 0) {
+            pointArray = new int[list.size()];
+            int i = 0;
+            for (Integer x : list) {
+                pointArray[i] = x;
+                i++;
+            }
+        }
+        return pointArray;
+    }
+
+    public Map<String, Path> getPaths() {
+        return paths;
+    }
+
+    public void addPath(String name, Path path) {
+        this.paths.put(name, path);
+    }
+
+    public interface PaintObjectsSupplier {
+        public List<FloorPoint> getPointsToPaint();
     }
 }

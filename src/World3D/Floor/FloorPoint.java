@@ -3,9 +3,9 @@ package World3D.Floor;
 public class FloorPoint extends GridPoint {
 
     public enum FloorPointType {
-        Empty, Wall, Unknown
+        Empty, Wall, Unknown, Character, Myself
     }
-    private int id;
+    private final int id;
     private FloorPointType type;
 
     public FloorPoint(int id, int x, int y) {
@@ -31,4 +31,11 @@ public class FloorPoint extends GridPoint {
     public FloorPointType getType() {
         return type;
     }
+
+    @Override
+    public FloorPoint clone() {
+        return new FloorPoint(this.id, this.x, this.y, this.type);
+    }
+    
+    
 }

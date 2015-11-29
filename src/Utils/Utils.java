@@ -1,5 +1,7 @@
 package Utils;
 
+import SMA.Agents.Agent;
+import SMA.Agents.Agent.AgentType;
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -12,6 +14,9 @@ import com.jme3.scene.debug.Grid;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class Utils {
 
@@ -22,7 +27,7 @@ public class Utils {
     public static Geometry createDebugArrow(AssetManager assetManager, Vector3f pos, Vector3f dir, Node node) {
         Arrow arrow = new Arrow(Vector3f.UNIT_Z.mult(dir.length()));
         arrow.setLineWidth(3);
-        Geometry mark = new Geometry("DebugArrow", arrow);
+        Geometry mark = new Geometry(Const.DebugWord + "Arrow", arrow);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
         mat.getAdditionalRenderState().setDepthTest(false);
@@ -42,7 +47,7 @@ public class Utils {
 
     public static Geometry createDebugBox(AssetManager assetManager, Vector3f pos, float side, Node node) {
         Box s = new Box(side, side, side);
-        Geometry mark = new Geometry("DebugBox", s);
+        Geometry mark = new Geometry(Const.DebugWord + "Box", s);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         //mat.getAdditionalRenderState().setWireframe(true);
         mat.getAdditionalRenderState().setDepthTest(false);
@@ -57,7 +62,7 @@ public class Utils {
 
     public static Geometry createDebugSphere(AssetManager assetManager, Vector3f pos, float radius, Node node) {
         Sphere s = new Sphere(10, 10, radius);
-        Geometry mark = new Geometry("DebugSphere", s);
+        Geometry mark = new Geometry(Const.DebugWord + "Sphere", s);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
         mat.getAdditionalRenderState().setDepthTest(false);
@@ -70,13 +75,13 @@ public class Utils {
         return mark;
     }
 
-    public static Geometry createCube(AssetManager assetManager, Vector3f pos, Vector3f size, Node node, ColorRGBA color) {
+    public static Geometry createCube(String name, AssetManager assetManager, Vector3f pos, Vector3f size, Node node, ColorRGBA color) {
 
         Vector3f _size = size.clone().divideLocal(2);
         Vector3f _pos = pos.clone();
         _pos.setY(_pos.y + _size.y);
         Box s = new Box(_size.x, _size.y, _size.z);
-        Geometry geo = new Geometry("Cube", s);
+        Geometry geo = new Geometry(name, s);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", color);
         geo.setMaterial(mat);
@@ -89,10 +94,10 @@ public class Utils {
 
     public static Geometry createGrid(AssetManager assetManager, int xSize, int ySize, float resolution, Vector3f pos, Node node, ColorRGBA color) {
         Vector3f _pos = pos.clone();
-        _pos.setX(_pos.x - xSize/2 * resolution);
-        _pos.setZ(_pos.z - ySize/2 * resolution);
-        Grid grid = new Grid(ySize+1, xSize+1, resolution);
-        Geometry g = new Geometry("Grid", grid);
+        _pos.setX(_pos.x - (xSize / 2.0f * resolution));
+        _pos.setZ(_pos.z - (ySize / 2.0f * resolution));
+        Grid grid = new Grid(ySize + 1, xSize + 1, resolution);
+        Geometry g = new Geometry(Const.DebugWord + "Grid", grid);
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
         mat.setColor("Color", color);
@@ -114,5 +119,51 @@ public class Utils {
         ClassLoader classLoader = Utils.class.getClassLoader();
         File f = new File(classLoader.getResource(fileName).getFile());
         return f.getAbsolutePath();
+    }
+
+    public static Integer[] randomNumbersArray(int amount, int min, int max) {
+        ArrayList<Integer> list = new ArrayList<Integer>();
+        for (int i = min; i < max; i++) {
+            list.add(i);
+        }
+        Collections.shuffle(list);
+        Integer[] vector = new Integer[amount];
+        if (amount > max) {
+            amount = max;
+        }
+        for (int i = 0; i < amount; i++) {
+            vector[i] = list.get(i);
+        }
+        return vector;
+    }
+
+    public static int[] integerListToIntArray(List<Integer> l) {
+        if (l != null && l.size() > 0) {
+            int[] a = new int[l.size()];
+            int c = 0;
+            for (Integer i : l) {
+                a[c] = i;
+                c++;
+            }
+            return a;
+        }
+        return null;
+    }
+
+    public static ColorRGBA getColorForAgentGeometry(AgentType type) {
+        ColorRGBA color = null;
+        if (type == Agent.AgentType.Enemy) {
+            color = ColorRGBA.Red;
+        }
+        if (type == Agent.AgentType.Explorer) {
+            color = ColorRGBA.Green;
+        }
+        if (type == Agent.AgentType.Hostage) {
+            color = ColorRGBA.Yellow;
+        }
+        if (type == Agent.AgentType.Protector) {
+            color = ColorRGBA.Blue;
+        }
+        return color;
     }
 }

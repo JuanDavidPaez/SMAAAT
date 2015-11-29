@@ -13,6 +13,7 @@ import SMA.GuardsData.RegisterAgentData;
 import Utils.Const;
 import Utils.Utils;
 import SMA.World.Guards.WorldInfoRequestGuard;
+import Utils.Const.Aliases;
 import World3D.Character3D;
 import World3D.Exit;
 import com.jme3.math.Vector3f;
@@ -35,7 +36,7 @@ public class WorldAgent extends AgentBESA implements ActionListener {
         WorldAgent wa = null;
         try {
             s.bindGuard("WorldInfoRequestGuard", WorldInfoRequestGuard.class);
-            wa = new WorldAgent(Const.WorldAgentAlias, e, s);
+            wa = new WorldAgent(Aliases.WorldAgentAlias, e, s);
         } catch (ExceptionBESA ex) {
             Logger.getLogger(WorldAgent.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -71,6 +72,10 @@ public class WorldAgent extends AgentBESA implements ActionListener {
         return (WorldState) this.getState();
     }
 
+    public WorldApp getWorldApp() {
+        return this.worldApp;
+    }
+
     //******************BEHAVIORS******************
     private <T> T execAsyncInWorldThread(Callable<T> func) {
         Future<T> future = worldApp.enqueue(func);
@@ -99,7 +104,7 @@ public class WorldAgent extends AgentBESA implements ActionListener {
             final RegisterAgentData data = r;
             execAsyncInWorldThread(new Callable<Void>() {
                 public Void call() throws Exception {
-                    new Character3D(worldApp, agentAlias, data.position, data.direction);
+                    new Character3D(worldApp, agentAlias, data.position, data.direction, data.agentType);
                     return null;
                 }
             });
@@ -111,21 +116,17 @@ public class WorldAgent extends AgentBESA implements ActionListener {
     public void handleWorldInfoRequest(InfoRequestData i) {
         final String agentAlias = i.fromAgentAlias();
         if (agentIsRegistered(agentAlias)) {
-            final String nodeName = agentAlias;
-            final InfoRequestData ird = i;
-            /*execAsyncInWorldThread(new Callable() {
-                public Object call() throws Exception {*/
-                    Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(nodeName)).getUserData(Const.Character);
-                    //c.updateDistanceSensorsData();
-                    //ird.robotSensors =  c.robotSensors.clone();
-                    ird.partialFloorView  = c.getCurrentFloorView();
-                    ird.position = c.getPosition();
-                    ird.direction = c.getDirection();
+            final InfoRequestData aux = i;
+            /*execAsyncInWorldThread(new Callable<Void>() {
+                public Void call() throws Exception {*/
+                    Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(agentAlias)).getUserData(Const.Character);
+                    aux.position = c.getPosition();
+                    aux.direction = c.getDirection();
+                    aux.partialFloorView = c.getCurrentFloorView();
+                    aux.seenObjects = c.getSeenCharacters();
                     /*return null;
                 }
             });*/
-            
-            i.partialFloorView = ird.partialFloorView;
             i.updateToReply();
             Agent.sendMessage(i);
         }
@@ -134,14 +135,8 @@ public class WorldAgent extends AgentBESA implements ActionListener {
     public void handleMoveRequest(final MoveData md) {
         final String agentAlias = md.fromAgentAlias();
         if (agentIsRegistered(agentAlias)) {
-            final String nodeName = agentAlias;
-            /*execAsyncInWorldThread(new Callable<Void>() {
-                public Void call() throws Exception {*/
-                    Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(nodeName)).getUserData(Const.Character);
-                    c.moveCharacter(md);
-                    /*return null;
-                }
-            });*/
+            Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(agentAlias)).getUserData(Const.Character);
+            c.moveCharacter(md);
             md.updateToReply();
             Agent.sendMessage(md);
         }

@@ -42,6 +42,7 @@ public class WorldApp extends SimpleApplication implements ActionListener {
         AppSettings settings = new AppSettings(true);
         settings.setTitle("SMAAAT");
         app.setSettings(settings);
+        app.setPauseOnLostFocus(false);
         //app.start();
         return app;
     }
@@ -112,7 +113,7 @@ public class WorldApp extends SimpleApplication implements ActionListener {
         Vector3f position = Vector3f.ZERO;
         if (name.equals("KEY_1")) {
             cam.setLocation(position.add(new Vector3f(0, 3, 0)));
-            cam.lookAt(position, Vector3f.UNIT_Y);
+            cam.lookAt(position,  Vector3f.UNIT_Z.negate());
         }
         if (name.equals("KEY_2")) {
             cam.setLocation(position.add(new Vector3f(3, 0, 0)));

@@ -1,8 +1,8 @@
 package World3D.Controls;
 
+import SMA.Agents.Agent;
 import SMA.GuardsData.MoveData;
 import World3D.Character3D;
-import World3D.RobotSensors;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
@@ -118,88 +118,14 @@ public class WalkerNavControl extends AbstractControl implements ActionListener 
             desiredRotation.multLocal(viewDirection);
             desiredRotation = null;
         }
-        if(desiredDirection != null){
+        if (desiredDirection != null) {
             viewDirection = desiredDirection;
         }
         control.setViewDirection(viewDirection);
-        
-        if(pendingMoveRequest){
+
+        if (pendingMoveRequest) {
             pendingMoveRequest = false;
             resetMoveFlags();
-        }
-    }
-
-    private void wallFollowerMovement(float tpf) {
-
-        BetterCharacterControl control = spatial.getControl(BetterCharacterControl.class);
-        character.updateDistanceSensorsData();
-        RobotSensors rs = character.robotSensors;
-
-        this.resetMoveFlags();
-        int sign = (!character.getLeft_handed()) ? 1 : -1;
-        if (character.getAtractionPoint() == null) {
-            if (character.getAllowMovement()) {
-                this.resetMoveFlags();
-
-                /*float angle =  this.viewDirection.normalize().angleBetween(Vector3f.UNIT_X);
-                 if ((angle % FastMath.HALF_PI)>0.15) {
-                 System.out.println("Name: " + spatial.getName());
-                 viewDirection = Vector3f.UNIT_Z;
-                 control.setViewDirection(viewDirection);
-                 }*/
-
-                /*No hay obstaculo en ningun sensor: avanza adelante*/
-                if (!rs.srFrontL.collideWithObject && !rs.srFrontR.collideWithObject
-                        && !rs.srRightF.collideWithObject && !rs.srRightR.collideWithObject
-                        && !rs.srRearL.collideWithObject && !rs.srRearR.collideWithObject
-                        && !rs.srLeftF.collideWithObject && !rs.srLeftR.collideWithObject) {
-                    this.forward = true;
-                }
-                /*Los dos sensores delanteros detectan objeto: Girar 90º */
-                if (rs.srFrontL.collideWithObject && rs.srFrontR.collideWithObject) {
-                    Quaternion rotateL = new Quaternion().fromAngleAxis(sign * FastMath.HALF_PI, Vector3f.UNIT_Y);
-                    rotateL.multLocal(viewDirection);
-                    control.setViewDirection(viewDirection);
-                }
-
-                /*Los dos sensores de la derecha detectan objeto: avanza adelante*/
-                if (rs.srRightF.collideWithObject && rs.srRightR.collideWithObject
-                        || rs.srRightF.collideWithObject && !rs.srRightR.collideWithObject) {
-                    this.forward = true;
-                }
-                /*Sensor derecho frontal no detecta pero sensor derecho trasero si detecta: Gira 90º*/
-                if (!rs.srRightF.collideWithObject && rs.srRightR.collideWithObject) {
-                    Quaternion rotateL = new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Y);
-                    rotateL.multLocal(viewDirection);
-                    control.setViewDirection(viewDirection);
-                }
-
-                /*Los dos sensores de la izquierda detectan objeto: avanza adelante*/
-                if (rs.srLeftF.collideWithObject && rs.srLeftR.collideWithObject
-                        || rs.srLeftF.collideWithObject && !rs.srLeftR.collideWithObject) {
-                    this.forward = true;
-                }
-                /*Sensor izquierda frontal no detecta pero sensor iaquierdo trasero si detecta: Gira  90º*/
-                if (!rs.srLeftF.collideWithObject && rs.srLeftR.collideWithObject) {
-                    Quaternion rotateL = new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y);
-                    rotateL.multLocal(viewDirection);
-                    control.setViewDirection(viewDirection);
-                }
-
-            }
-        } else {
-
-            Vector3f position = spatial.getWorldTranslation().clone();
-            if (position.distance(character.getAtractionPoint()) > minDistanceFromAtractionPoint) {
-                Vector3f direction = character.getAtractionPoint().subtract(spatial.getWorldTranslation()).normalize();
-                Quaternion rot = new Quaternion();
-                rot.lookAt(direction, Vector3f.UNIT_Y);
-                viewDirection = direction;
-                control.setViewDirection(viewDirection);
-                forward = true;
-            } else {
-                character.atractionPointReached();
-            }
         }
     }
 

@@ -50,7 +50,17 @@ public class GridPoint {
 
     @Override
     public boolean equals(Object o) {
-        GridPoint p = (GridPoint) o;
-        return (this.x == p.x && this.y == p.y);
+        if (o == null) {
+            return false;
+        } else if (!(o instanceof GridPoint)) {
+            return false;
+        } else {
+            GridPoint p = (GridPoint) o;
+            return (this.x == p.x && this.y == p.y);
+        }
+    }
+
+    public GridPoint Clone() {
+        return new GridPoint(this.x, this.y);
     }
 }

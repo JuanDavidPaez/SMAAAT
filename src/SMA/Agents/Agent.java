@@ -19,42 +19,50 @@ import SMA.GuardsData.MoveData;
 import SMA.GuardsData.RegisterAgentData;
 import Utils.Const;
 import SMA.World.Guards.WorldInfoRequestGuard;
+import Utils.Const.Aliases;
+import Utils.Utils;
 import World3D.Floor.Floor3D;
 import World3D.Floor.FloorData;
 import World3D.Floor.FloorPoint;
+import World3D.Floor.FloorPoint.FloorPointType;
 import World3D.Floor.GridPoint;
 import World3D.Floor.Path;
-import World3D.RobotSensors;
-import com.jme3.math.FastMath;
+import World3D.Object3D;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import java.awt.Color;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Agent extends AgentBESA {
 
-    public static Agent CreateAgent(String alias, Vector3f position, Vector3f direction) {
+    public enum AgentType {
+
+        Explorer, Hostage, Enemy, Protector
+    };
+    AgentType type;
+
+    public static Agent CreateAgent(AgentType type, String alias, Vector3f position, Vector3f direction) {
         AgentState e = new AgentState(position, direction);
         StructBESA s = new StructBESA();
-
         s.addBehavior("SensorUpdate");
 
         Agent a = null;
-
         try {
             s.bindGuard("SensorUpdate", AgentSensorGuard.class);
-            a = new Agent(alias, e, s);
+            a = new Agent(type, alias, e, s);
         } catch (ExceptionBESA ex) {
             Logger.getLogger(Agent.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         return a;
-
     }
 
-    public Agent(String alias, StateBESA state, StructBESA structAgent) throws KernellAgentExceptionBESA {
+    public Agent(AgentType type, String alias, StateBESA state, StructBESA structAgent) throws KernellAgentExceptionBESA {
         super(alias, state, structAgent, Const.BESApassword);
+        this.type = type;
     }
 
     @Override
@@ -82,7 +90,7 @@ public class Agent extends AgentBESA {
             AgHandlerBESA ah = AdmBESA.getInstance().getHandlerByAlias(alias);
             ah.sendEvent(ev);
         } catch (ExceptionBESA ex) {
-            Logger.getLogger(Agent.class.getName()).log(Level.SEVERE, null, ex);
+            //Logger.getLogger(Agent.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -90,82 +98,189 @@ public class Agent extends AgentBESA {
         sendMessage(msg.toGuard(), msg.toAgentAlias(), msg);
     }
 
-    //******************BEHAVIORS******************
     public void sendWorldRegisterRequest() {
-
-        RegisterAgentData msg = new RegisterAgentData(this.getAlias(), Const.WorldAgentAlias, WorldInfoRequestGuard.class);
+        RegisterAgentData msg = new RegisterAgentData(this.getAlias(), Aliases.WorldAgentAlias, WorldInfoRequestGuard.class);
         msg.setReplyGuard(AgentSensorGuard.class);
         msg.position = getState().position.clone();
         msg.direction = getState().direction.clone();
+        msg.agentType = this.type;
+        //waitTime(1);
         Agent.sendMessage(msg);
     }
 
     public void sendWorldInfoRequest() {
-        InfoRequestData msg = new InfoRequestData(this.getAlias(), Const.WorldAgentAlias, WorldInfoRequestGuard.class);
+        InfoRequestData msg = new InfoRequestData(this.getAlias(), Aliases.WorldAgentAlias, WorldInfoRequestGuard.class);
         msg.setReplyGuard(AgentSensorGuard.class);
+        //waitTime(1);
         Agent.sendMessage(msg);
     }
 
-    public void processInfoRequest(InfoRequestData i) {
-        boolean floorDataChanged = false;
+    public void sendMoveRequest(Vector3f nextMovePosition) {
+        AgentState state = getState();
+
+        Vector3f position = state.position;
+        Vector3f direction = nextMovePosition.subtract(position).normalize();
+        Quaternion rot = new Quaternion();
+        rot.lookAt(direction, Vector3f.UNIT_Y);
+
+        MoveData move = new MoveData(this.getAlias(), Aliases.WorldAgentAlias, WorldInfoRequestGuard.class);
+        move.setReplyGuard(AgentSensorGuard.class);
+        move.direction = direction;
+        move.forward = true;
+        //waitTime(1);
+        Agent.sendMessage(move);
+    }
+
+    public void processWorldInfoResponse(InfoRequestData i) {
+        boolean dataChanged = updateAgentStateWithWorldInfo(i);
+        updateGlobalDesiredPosition();
+        updateMovementIntentions(dataChanged);
+        if (getState().nextMoveToTargetPosition != null) {
+            sendMoveRequest(getState().nextMoveToTargetPosition);
+        } else {
+            sendWorldInfoRequest();
+        }
+    }
+
+    private boolean updateAgentStateWithWorldInfo(InfoRequestData i) {
+        boolean dataChanged = false;
         AgentState state = getState();
         state.position = i.position;
         state.direction = i.direction;
+        /*Actualiza información del piso*/
         if (state.floor == null && i.partialFloorView != null) {
-            floorDataChanged = true;
+            dataChanged = true;
             state.floor = new FloorData(i.partialFloorView.getParentFloorXSize(),
                     i.partialFloorView.getParentFloorYSize(),
                     i.partialFloorView.pxResolution, FloorPoint.FloorPointType.Unknown);
-            if (Const.inDebugMode) {
-                //state.floor.showInJFrame();
+            if (1 == 1 && Const.inDebugMode) {
+                state.floor.pointsSupplier = state;
+                state.floor.showInJFrame();
             }
         } else if (i.partialFloorView != null) {
-            floorDataChanged = state.floor.updateDataFromChunk(i.partialFloorView);
+            dataChanged = state.floor.updateDataFromChunk(i.partialFloorView);
         }
-        updateMovementIntentions(floorDataChanged);
+        /*Actualiza información de objetos vistos*/
+        dataChanged = (updateCurrentSeenObjects(i) ? true : dataChanged);
+
+        return dataChanged;
     }
 
-    private void updateMovementIntentions(boolean floorDataChanged) {
+    private boolean updateCurrentSeenObjects(InfoRequestData ird) {
+        AgentState state = getState();
+        boolean change = false;
+        change = state.agentsList.updateObjects(ird.seenObjects);
+
+        /*Eliminación de objetos3D que ya no se encuentran en la posición antes memorizada*/
+        if (ird.partialFloorView != null && ird.partialFloorView.getPoints().length > 0) {
+            for (FloorPoint fp : ird.partialFloorView.getPoints()) {
+                if (EnumSet.of(FloorPointType.Unknown, FloorPointType.Empty).contains(fp.getType())) {
+                    boolean remove = true;
+                    for (Object3D obj : ird.seenObjects) {
+                        if (state.getPointPosition(obj.position3D).getId() == fp.getId()) {
+                            remove = false;
+                            break;
+                        }
+                    }
+                    if (remove) {
+                        state.agentsList.removeObjectsInPosition(fp, state.floor);
+                    }
+                }
+            }
+        }
+        return change;
+    }
+
+    private void updateGlobalDesiredPosition() {
+        boolean reset = false;
+        AgentState state = getState();
+        /*Nueva posicion aleatoria*/
+        if (state.globalTargetPosition == null) {
+            state.globalTargetPosition = selectExploringMapDesiredPosition();
+        }
+        /*Remueve la posicion si el agente ya llegó a ella*/
+        if (!reset && state.globalTargetPosition != null && agentIsInTargetPosition(state.globalTargetPosition)) {
+            reset = true;
+        }
+        /*Desiste de la posición si ésta resultó estar ocupada por un obstaculo*/
+        if (!reset && state.globalTargetPosition != null && state.floor.isObstacle(state.floor.getPointFromCoordinates(state.globalTargetPosition))) {
+            reset = true;
+        }
+        /*Desiste de la posición deseada si ésta no es alcanzable*/
+        if (!reset && state.currentPatrolPath != null && state.nextMoveToTargetPosition == null) {
+            reset = true;
+        }
+        /*Limpia la posicion deseada y el plan*/
+        if (reset) {
+            state.nextMoveToTargetPosition = null;
+            state.currentPatrolPath = null;
+            state.globalTargetPosition = null;
+        }
+    }
+
+    private void updateMovementIntentions(boolean dataChanged) {
         AgentState state = getState();
 
         if (state.globalTargetPosition != null) {
-            GridPoint currentPositionPoint = Floor3D.Vector3fToGridPoint(state.position, state.floor.XSize, state.floor.YSize);
-            GridPoint globalTargetPositionPoint = Floor3D.Vector3fToGridPoint(state.globalTargetPosition, state.floor.XSize, state.floor.YSize);
+            GridPoint currentPositionPoint = state.getPointPosition(state.position);
+            GridPoint globalTargetPositionPoint = state.globalTargetPosition.Clone();
 
-            if (state.currentPatrolPath != null && floorDataChanged) {
+            /*Solicita cambiar el plan si se encuentra un obstaculo en la ruta del plan actual*/
+            if (state.currentPatrolPath != null && dataChanged) {
                 if (!isPatrolPathStillValid()) {
                     state.currentPatrolPath = null;
                 }
             }
 
+            /*Se calcula un plan de movimiento si aún no se tiene*/
             if (state.currentPatrolPath == null) {
                 FloorData floor = state.floor;
                 Path movementPath = findPathAStarAlgorithm(floor, currentPositionPoint, globalTargetPositionPoint);
                 if (movementPath != null) {
                     state.currentPatrolPath = new PatrolPath(movementPath);
-                    if (Const.inDebugMode) {
-                        floor.paths.put("Path", movementPath);
-                    }
+                }
+                if (Const.inDebugMode) {
+                    floor.addPath("Path", movementPath);
                 }
             }
-
+            /*Se busca el siguiente paso en el plan de movimiento*/
             if (state.currentPatrolPath != null && state.currentPatrolPath.points.size() > 0) {
-                if (state.inmediateTargetPosition == null || state.position.distance(state.inmediateTargetPosition) <= AgentState.minDistanceFromTargetPoint) {
+                if (state.nextMoveToTargetPosition == null || agentIsInTargetPositionVector(state.nextMoveToTargetPosition)) {
                     PathPoint nextPoint = state.currentPatrolPath.getNextPoint(currentPositionPoint);
                     if (nextPoint != null) {
-                        state.inmediateTargetPosition = Floor3D.GridPointToVector3f(nextPoint, state.floor.XSize, state.floor.YSize);
-                        state.inmediateTargetPosition.setY(state.position.y);
+                        state.nextMoveToTargetPosition = Floor3D.GridPointToVector3f(nextPoint, state.floor.XSize, state.floor.YSize);
+                        state.nextMoveToTargetPosition.setY(state.position.y);
                     }
                 }
             }
-            sendMoveRequest();
         }
+    }
+
+    private boolean agentIsInTargetPosition(GridPoint targetPosition) {
+        Vector3f v = Floor3D.GridPointToVector3f(targetPosition, getState().floor.XSize, getState().floor.YSize);
+        return agentIsInTargetPositionVector(v);
+    }
+
+    private boolean agentIsInTargetPositionVector(Vector3f targetPosition) {
+        Vector3f pos = getState().position.clone().setY(0);
+        Vector3f target = targetPosition.clone().setY(0);
+        return (pos.distance(target) <= AgentState.minDistanceFromTargetPoint);
     }
 
     private Path findPathAStarAlgorithm(FloorData floor, GridPoint currentPosition, GridPoint targetPosition) {
         Path path = null;
         A_Star aStar = new A_Star(floor.XSize, floor.YSize);
         aStar.addObstacles(floor.floorObstaclesToArray());
+
+        List<FloorPoint> agentsPositions = getState().getSeenAgentsPositionPoints();
+        int[] intarray = new int[agentsPositions.size()];
+        int c = 0;
+        for (FloorPoint fp : agentsPositions) {
+            intarray[c] = fp.getId();
+            c++;
+        }
+        aStar.addObstacles(intarray);
+
         int[] pathArray = aStar.findPath(floor.gridPoint2ArrayIndex(currentPosition), floor.gridPoint2ArrayIndex(targetPosition));
         if (pathArray != null && pathArray.length > 0) {
             path = new Path(floor.arrayIndex2GridPointList(pathArray), Color.YELLOW);
@@ -173,85 +288,39 @@ public class Agent extends AgentBESA {
         return path;
     }
 
-    public void sendMoveRequest() {
-        AgentState state = getState();
-        if (state.inmediateTargetPosition != null) {
-            Vector3f position = state.position;
-            if (position.distance(state.inmediateTargetPosition) > AgentState.minDistanceFromTargetPoint) {
-                Vector3f direction = state.inmediateTargetPosition.subtract(position).normalize();
-                Quaternion rot = new Quaternion();
-                rot.lookAt(direction, Vector3f.UNIT_Y);
-
-                MoveData move = new MoveData(this.getAlias(), Const.WorldAgentAlias, WorldInfoRequestGuard.class);
-                move.setReplyGuard(AgentSensorGuard.class);
-
-                move.direction = direction;
-                move.forward = true;
-
-                Agent.sendMessage(move);
-            }
-        }
-    }
-
-    @Deprecated
-    public void sendMoveRequest_WallFollower(RobotSensors rs) {
-
-        MoveData move = new MoveData(this.getAlias(), Const.WorldAgentAlias, WorldInfoRequestGuard.class);
-        move.setReplyGuard(AgentSensorGuard.class);
-
-        if (rs != null) {
-            /*No hay obstaculo en ningun sensor: avanza adelante*/
-            if (!rs.srFrontL.collideWithObject && !rs.srFrontR.collideWithObject
-                    && !rs.srRightF.collideWithObject && !rs.srRightR.collideWithObject
-                    && !rs.srRearL.collideWithObject && !rs.srRearR.collideWithObject
-                    && !rs.srLeftF.collideWithObject && !rs.srLeftR.collideWithObject) {
-                move.forward = true;
-            }
-            /*Los dos sensores delanteros detectan objeto: Girar 90º */
-            if (rs.srFrontL.collideWithObject && rs.srFrontR.collideWithObject) {
-                Quaternion rotate = new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y);
-                move.rotation = rotate;
-            }
-
-            /*Los dos sensores de la derecha detectan objeto: avanza adelante*/
-            if (rs.srRightF.collideWithObject && rs.srRightR.collideWithObject
-                    || rs.srRightF.collideWithObject && !rs.srRightR.collideWithObject) {
-                move.forward = true;
-            }
-            /*Sensor derecho frontal no detecta pero sensor derecho trasero si detecta: Gira 90º*/
-            if (!rs.srRightF.collideWithObject && rs.srRightR.collideWithObject) {
-                Quaternion rotate = new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_Y);
-                move.rotation = rotate;
-            }
-
-            /*Los dos sensores de la izquierda detectan objeto: avanza adelante*/
-            if (rs.srLeftF.collideWithObject && rs.srLeftR.collideWithObject
-                    || rs.srLeftF.collideWithObject && !rs.srLeftR.collideWithObject) {
-                move.forward = true;
-            }
-            /*Sensor izquierda frontal no detecta pero sensor izquierdo trasero si detecta: Gira  90º*/
-            if (!rs.srLeftF.collideWithObject && rs.srLeftR.collideWithObject) {
-                Quaternion rotate = new Quaternion().fromAngleAxis(FastMath.HALF_PI, Vector3f.UNIT_Y);
-                move.rotation = rotate;
-            }
-            if (move.rotation == null && move.forward == false) {
-                move.forward = true;
-            }
-        }
-
-        Agent.sendMessage(move);
-    }
-
     private boolean isPatrolPathStillValid() {
-        boolean pathValid = true;
         AgentState state = getState();
         for (PathPoint pp : state.currentPatrolPath.points) {
             FloorPoint p = state.floor.getPointFromCoordinates(pp.x, pp.y);
             if (state.floor.isObstacle(p)) {
-                pathValid = false;
-                break;
+                return false;
+            }
+            if (getState().agentsList.firstObjectInPosition(p, state.floor) != null) {
+                return false;
             }
         }
-        return pathValid;
+        return true;
+    }
+
+    private GridPoint selectExploringMapDesiredPosition() {
+        GridPoint targetPoint = null;
+        AgentState state = getState();
+        int[] points = state.floor.getPointsArray(EnumSet.of(FloorPointType.Unknown));
+        if (points != null && points.length > 0) {
+            int posIdx = state.getPointPosition(state.position).getId();
+            int idx = Utils.randomInteger(0, points.length - 1);
+            targetPoint = (state.floor.getPointFromId(points[idx]).Clone());
+        }
+        return targetPoint;
+    }
+
+    private void waitTime(long millis) {
+        if (millis > 0) {
+            try {
+                Thread.sleep(millis);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Agent.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
 }

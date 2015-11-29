@@ -26,6 +26,9 @@ public class Exit implements Savable, PhysicsCollisionListener {
 
     public Exit(WorldApp app, Vector3f position, Vector3f size) {
 
+        if(1==1)
+            throw new RuntimeException("Exit debe ser revisado para implementarlo");
+        
         String name = Const.Exit;
         this.size = size;
         this.app = app;

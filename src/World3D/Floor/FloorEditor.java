@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -40,7 +39,7 @@ public class FloorEditor extends JPanel {
 
     //<editor-fold desc="Metodos">
     public FloorEditor() {
-        floorData = new FloorData(50, 50, 10);
+        floorData = new FloorData(10, 17, 10);
         init();
     }
 
@@ -235,6 +234,7 @@ public class FloorEditor extends JPanel {
         super.paintComponent(g);
         paintFloorPoints(g);
         paintAditionalPaths(g);
+        paintAditionalPoints(g);
         paintBackGroundGrid(g);
         paintHighlightedPoints(g);
     }
@@ -253,30 +253,30 @@ public class FloorEditor extends JPanel {
 
     protected void paintFloorPoints(Graphics g) {
         for (FloorPoint p : this.floorData.points) {
-            Color color = null;
-
-            if (p.getType() == FloorPointType.Wall) {
-                color = Color.BLACK;
-            } else if (p.getType() == FloorPointType.Empty) {
-                color = Color.WHITE;
-            } else if (p.getType() == FloorPointType.Unknown) {
-                color = Color.GRAY;
-            }
-            else {
-                throw new RuntimeException("No se ha especificado color para el tipo de objeto " + p.getType());
-            }
-            drawRectangle(g, p, null, 0, color);
+            paintFloorPoint(p, g);
         }
     }
 
     protected void paintAditionalPaths(Graphics g) {
-        if (floorData.paths != null && floorData.paths.size() > 0) {
-            for (Map.Entry<String, Path> e : floorData.paths.entrySet()) {
+        if (floorData.getPaths() != null && floorData.getPaths().size() > 0) {
+            for (Map.Entry<String, Path> e : floorData.getPaths().entrySet()) {
                 Path p = e.getValue();
                 if (p != null && p.points.size() > 0) {
                     for (GridPoint gp : p.points) {
                         drawRectangle(g, gp, p.color, 0, p.color);
                     }
+                }
+            }
+        }
+    }
+
+    protected void paintAditionalPoints(Graphics g) {
+        if (floorData.pointsSupplier != null) {
+            List<FloorPoint> pointList = floorData.pointsSupplier.getPointsToPaint();
+
+            if (pointList != null && pointList.size() > 0) {
+                for (FloorPoint p : pointList) {
+                    paintFloorPoint(p, g);
                 }
             }
         }
@@ -292,6 +292,25 @@ public class FloorEditor extends JPanel {
             g.setFont(new Font("Arial Bold", Font.BOLD, 10));
             g.drawString(mouseHoverGridPoint.toString(), x, y);
         }
+    }
+
+    private void paintFloorPoint(FloorPoint p, Graphics g) {
+        Color color = null;
+
+        if (p.getType() == FloorPointType.Wall) {
+            color = Color.BLACK;
+        } else if (p.getType() == FloorPointType.Empty) {
+            color = Color.WHITE;
+        } else if (p.getType() == FloorPointType.Unknown) {
+            color = Color.GRAY;
+        }else if (p.getType() == FloorPointType.Character){
+            color = Color.MAGENTA;
+        }else if (p.getType() == FloorPointType.Myself){
+            color = Color.blue;
+        }  else {
+            throw new RuntimeException("No se ha especificado color para el tipo de objeto " + p.getType());
+        }
+        drawRectangle(g, p, null, 0, color);
     }
 
     protected void drawRectangle(Graphics g, GridPoint gridPoint, Color borderColor, int border, Color fillColor) {
