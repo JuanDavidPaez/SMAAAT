@@ -93,7 +93,7 @@ public class FloorData {
     public List<FloorPoint> getWalls() {
         List<FloorPoint> walls = new ArrayList<FloorPoint>();
         for (FloorPoint p : points) {
-            if (p.getType() == FloorPointType.Wall) {
+            if (isObstacle(p)) {
                 walls.add(p);
             }
         }
@@ -107,7 +107,7 @@ public class FloorData {
                 list.add(p.getId());
             }
         }
-        if(list.size() > 0){
+        if (list.size() > 0) {
             int[] obstacles = Utils.integerListToIntArray(list);
             return obstacles;
         }
@@ -201,22 +201,23 @@ public class FloorData {
         return dataChanged;
     }
 
-    public void showInJFrame() {
+    public JFrame showInJFrame() {
 
         final FloorEditor panel = new FloorEditor(this);
         panel.setAllowEdition(false);
+        JFrame frame = new JFrame();
+        frame.setTitle("Floor data view");
+        frame.setSize(panel.getPixelWidth() + 20, panel.getPixelHeight() + 40);
+        frame.setVisible(true);
+        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        frame.add(panel);
         Thread t = new Thread(new Runnable() {
             public void run() {
-                JFrame frame = new JFrame();
-                frame.setTitle("Floor data view");
-                frame.setSize(panel.getPixelWidth() + 20, panel.getPixelHeight() + 40);
-                frame.setVisible(true);
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.add(panel);
                 panel.startPaintLoop();
             }
         });
         t.start();
+        return frame;
     }
 
     public static FloorData loadDataFromFile(String filePath) {
@@ -232,7 +233,7 @@ public class FloorData {
     }
 
     public boolean isObstacle(FloorPoint p) {
-        return p.getType().equals(FloorPointType.Wall);
+        return (p.getType().equals(FloorPointType.Wall) || p.getType().equals(FloorPointType.Exit));
     }
 
     public boolean isWalkable(FloorPoint p) {
@@ -267,6 +268,7 @@ public class FloorData {
     }
 
     public interface PaintObjectsSupplier {
+
         public List<FloorPoint> getPointsToPaint();
     }
 }

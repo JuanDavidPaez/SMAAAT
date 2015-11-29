@@ -35,42 +35,45 @@ public class SimulationBESA {
 
     protected void worldIsReady() {
 
-        //worldAgent.addExitObject();
         //initSpecificAgentsSmallFloor();
         //initSpecificAgents();
-        initAgentsRandom(20, 20);
+        initAgentsRandomPositions(5, 5, 5, 5);
     }
 
     protected void initSpecificAgentsSmallFloor() {
         Vector3f pos1 = worldAgent.getWorldApp().getFloor3D().GridPointToVector3f(new GridPoint(6, 6));
-        Agent a1 = Agent.CreateAgent(AgentType.Explorer, "Agent_1", pos1, new Vector3f(0, 0, 1));
+        Agent a1 = Agent.CreateAgent(AgentType.Explorer, pos1, new Vector3f(0, 0, 1));
         a1.start();
 
         Vector3f pos2 = worldAgent.getWorldApp().getFloor3D().GridPointToVector3f(new GridPoint(8, 6));
-        Agent a2 = Agent.CreateAgent(AgentType.Enemy, "Agent_2", pos2, new Vector3f(0, 0, 1));
+        Agent a2 = Agent.CreateAgent(AgentType.Enemy, pos2, new Vector3f(0, 0, 1));
         a2.start();
+
     }
 
     protected void initSpecificAgents() {
         Vector3f pos1 = worldAgent.getWorldApp().getFloor3D().GridPointToVector3f(new GridPoint(18, 30));
-        Agent a1 = Agent.CreateAgent(AgentType.Explorer, "Agent_1", pos1, new Vector3f(0, 0, 1));
+        Agent a1 = Agent.CreateAgent(AgentType.Explorer, pos1, new Vector3f(0, 0, 1));
         a1.start();
 
         Vector3f pos2 = worldAgent.getWorldApp().getFloor3D().GridPointToVector3f(new GridPoint(2, 30));
-        Agent a2 = Agent.CreateAgent(AgentType.Enemy, "Agent_2", pos2, new Vector3f(0, 0, 1));
+        Agent a2 = Agent.CreateAgent(AgentType.Enemy, pos2, new Vector3f(0, 0, 1));
         a2.start();
     }
 
-    protected void initAgentsRandom(int explorers, int enemies) {
-        int totalAgents = explorers + enemies;
+    protected void initAgentsRandomPositions(int explorers, int enemies, int hostages, int protectors) {
+        int totalAgents = explorers + enemies + hostages + protectors;
         Floor3D floor = worldAgent.getWorldApp().getFloor3D();
         FloorData fData = floor.getFloorData();
         int[] points = fData.walkablePointsToArray();
+
+        if (points.length / 2 < totalAgents) {
+            throw new RuntimeException("El mundo contiene muy poco espacio para la cantidad de agentes. Espacio: " + points.length + " Agentes: " + totalAgents);
+        }
+
         Integer[] ids = Utils.randomNumbersArray(totalAgents, 0, points.length);
 
-        int n = 0;
         for (Integer id : ids) {
-            n++;
             AgentType type = null;
             if (explorers > 0) {
                 type = AgentType.Explorer;
@@ -78,11 +81,16 @@ public class SimulationBESA {
             } else if (enemies > 0) {
                 type = AgentType.Enemy;
                 enemies--;
+            } else if (hostages > 0) {
+                type = AgentType.Hostage;
+                hostages--;
+            } else if (protectors > 0) {
+                type = AgentType.Protector;
+                protectors--;
             }
 
-
             Vector3f pos = floor.GridPointToVector3f(fData.getPointFromId(points[id]));
-            Agent a = Agent.CreateAgent(type, "Agent_" + n, pos, new Vector3f(0, 0, 1));
+            Agent a = Agent.CreateAgent(type, pos, new Vector3f(0, 0, 1));
             a.start();
         }
     }

@@ -2,6 +2,7 @@ package World3D;
 
 import SMA.Agents.Agent;
 import SMA.Agents.Agent.AgentType;
+import SMA.Agents.Attributes;
 import SMA.GuardsData.MoveData;
 import SMA.GuardsData.ShootData;
 import SMA.GuardsData.WorldInfoData;
@@ -13,8 +14,9 @@ import World3D.Controls.WalkerNavControl;
 import World3D.Floor.Floor3D;
 import World3D.Floor.FloorDataChunk;
 import World3D.Floor.GridPoint;
+import World3D.Object3D;
+import World3D.WorldApp;
 import com.jme3.bounding.BoundingSphere;
-import com.jme3.bounding.BoundingVolume;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
@@ -40,33 +42,34 @@ public class Character3D implements Savable {
     protected Node node;
     protected float radius = Config.CharacterRadius;
     protected float height = radius * 2.0f;
-    protected float sightRange = (2.0f * Config.FloorGridCellSize);
     protected float mass = 15.0f;
-    protected float speed = 2;
     protected String agentAlias;
     protected AgentType agentType;
     protected Date lastShootTime;
-    protected int shootingRestTime = 200;
+    public int shootingRestTime = 200;
     protected static Sphere bullet;
     protected static Material bulletMaterial;
     protected float bulletRadius = radius / 5;
     protected float bulletSpeed = 3;
     protected int live = 10;
+    protected Attributes attributes;
 
     /*variables modificadas entre hilos*/
     protected Vector3f shootingTarget;
     protected volatile WorldInfoData worldInfoDataRequest;
 
-    public Character3D(WorldApp app, String name, Vector3f position, Vector3f direction, AgentType type) {
+    public Character3D(WorldApp app, String name, Vector3f position, Vector3f direction, AgentType type, Attributes attr) {
         this.app = app;
         this.node = new Node(Agent.getAgentNodeName(name));
         this.agentAlias = name;
         this.agentType = type;
+        this.attributes = attr;
 
         node.setLocalTranslation(position);
         node.attachChild(createSpatialGeometry(name));
-        Spatial arrow = Utils.createDebugArrow(app.getAssetManager(), Vector3f.ZERO, new Vector3f(0, 0, 0.5f), node);
-        arrow.getLocalTranslation().setY(height / 2);
+
+        Utils.createDebugArrow(app.getAssetManager(), new Vector3f(0,height/2,0), new Vector3f(0, 0, 0.5f), node);
+        Utils.createCircle(app.getAssetManager(), new Vector3f(0,Const.FloorGridHeight*2,0), getSightRange()+radius, node, Utils.getColorForAgentGeometry(type));
 
         ((Spatial) (node)).setUserData(Const.Character, this);
 
@@ -145,7 +148,7 @@ public class Character3D implements Savable {
     }
 
     public float getSpeed() {
-        return speed;
+        return attributes.speed;
     }
 
     public int getLive() {
@@ -158,6 +161,10 @@ public class Character3D implements Savable {
 
     public AgentType getAgentType() {
         return agentType;
+    }
+    
+    public float getSightRange() {
+        return attributes.sightRange;
     }
 
     public Vector3f getPosition() {
@@ -188,7 +195,7 @@ public class Character3D implements Savable {
     public FloorDataChunk getCurrentFloorView() {
         Vector3f position = getPosition();
         GridPoint p = getFloor3D().Vector3fToGridPoint(position);
-        return getFloor3D().getFloorDataPartialView(p, sightRange);
+        return getFloor3D().getFloorDataPartialView(p, getSightRange());
     }
 
     public List<Object3D> getSeenCharacters() {
@@ -202,14 +209,14 @@ public class Character3D implements Savable {
                     Vector3f charPosition = s.getWorldTranslation().clone();
                     charPosition.setY(myPosition.y);
                     float distance = myPosition.distance(charPosition);
-                    if (distance <= (this.sightRange + this.radius)) {
+                    if (distance <= (this.getSightRange() + this.radius)) {
                         /*Corrimiento del punto fuera del volumen de la geometria del character*/
                         Vector3f direction = charPosition.subtract(myPosition).normalize();
                         Vector3f rayOrigin = myPosition.add(direction.mult(radius + (radius * 0.1f)));
 
                         Ray r = new Ray(rayOrigin, direction);
-                        r.setLimit(sightRange);
-                        Vector3f dir = direction.mult(sightRange);
+                        r.setLimit(getSightRange());
+                        Vector3f dir = direction.mult(getSightRange());
 
                         CollisionResults results = new CollisionResults();
                         app.getNoneBulletsNode().collideWith(r, results);
@@ -288,11 +295,11 @@ public class Character3D implements Savable {
         live--;
         getApp().getWorldAgent().notifyAgentHitttedByBullet(this, collision);
         if (live <= 0) {
-            killCharacter();
+            removeFromWorld();
         }
     }
-
-    protected void killCharacter() {
+    
+    protected void removeFromWorld(){
         WalkerNavControl c = this.node.getControl(WalkerNavControl.class);
         c.setEnabled(false);
         this.node.removeFromParent();
@@ -306,5 +313,10 @@ public class Character3D implements Savable {
         wid.partialFloorView = this.getCurrentFloorView();
         wid.seenObjects = this.getSeenCharacters();
         getApp().getWorldAgent().notifyAgentWorldInfoData(this, wid);
+    }
+    
+    public void hostageReachExit(){
+        getApp().getWorldAgent().notifyHostageReachExit(this);
+        removeFromWorld();
     }
 }

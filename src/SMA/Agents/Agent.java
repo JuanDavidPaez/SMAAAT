@@ -1,5 +1,6 @@
 package SMA.Agents;
 
+import SMA.Agents.States.AgentState;
 import AI.Pathfinding.A_Star;
 import AI.Pathfinding.PatrolPath;
 import AI.Pathfinding.PatrolPath.PathPoint;
@@ -12,8 +13,10 @@ import BESA.Kernel.Agent.StateBESA;
 import BESA.Kernel.Agent.StructBESA;
 import BESA.Kernel.System.AdmBESA;
 import BESA.Kernel.System.Directory.AgHandlerBESA;
+import SMA.Agents.AParams;
 import SMA.Agents.Guards.AgentSensorGuard;
 import SMA.GuardsData.CollisionData;
+import SMA.GuardsData.HostageRescuedData;
 import SMA.GuardsData.WorldInfoData;
 import SMA.GuardsData.Message;
 import SMA.GuardsData.MoveData;
@@ -34,30 +37,46 @@ import World3D.Object3D;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Agent extends AgentBESA {
+public abstract class Agent extends AgentBESA {
 
     public enum AgentType {
 
         Explorer, Hostage, Enemy, Protector
-    };
-    private static int counter = 0;
+    }
+    private final static ACounter counter = new ACounter();
     public final int id;
     private final AgentType agentType;
 
-    public static Agent CreateAgent(AgentType type, String alias, Vector3f position, Vector3f direction) {
-        AgentState e = new AgentState(position, direction);
-        StructBESA s = new StructBESA();
-        s.addBehavior("SensorUpdate");
+    public static Agent CreateAgent(AgentType type, Vector3f position, Vector3f direction) {
+
+        AParams p = new AParams();
+        p.id = counter.newAgent(type);
+        p.alias = type.toString() + "_" + p.id;
+        Attributes attributes = new Attributes(type);
+        p.state = new AgentState(position, direction, attributes);
+        p.structAgent = new StructBESA();
+        p.structAgent.addBehavior("SensorUpdate");
 
         Agent a = null;
         try {
-            s.bindGuard("SensorUpdate", AgentSensorGuard.class);
-            a = new Agent(type, alias, e, s);
+            p.structAgent.bindGuard("SensorUpdate", AgentSensorGuard.class);
+
+            if (type == AgentType.Enemy) {
+                a = new AgentEnemy(p);
+            } else if (type == AgentType.Explorer) {
+                a = new AgentExplorer(p);
+            } else if (type == AgentType.Hostage) {
+                a = new AgentHostage(p);
+            } else if (type == AgentType.Protector) {
+                a = new AgentProtector(p);
+            }
         } catch (ExceptionBESA ex) {
             Logger.getLogger(Agent.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -65,15 +84,16 @@ public class Agent extends AgentBESA {
         return a;
     }
 
-    public Agent(AgentType type, String alias, StateBESA state, StructBESA structAgent) throws KernellAgentExceptionBESA {
-        super(alias, state, structAgent, Config.BESApassword);
-        counter++;
-        this.id = counter;
+    protected Agent(AgentType type, AParams p) throws KernellAgentExceptionBESA {
+        super(p.alias, p.state, p.structAgent, Config.BESApassword);
+        this.id = p.id;
         this.agentType = type;
     }
 
     @Override
     public void setupAgent() {
+        /*Paginas Amarrillas*/
+        getAdmLocal().bindSPServiceInDirectory(this.getAlias(), agentType.toString());
     }
 
     @Override
@@ -123,6 +143,7 @@ public class Agent extends AgentBESA {
         msg.position = getState().position.clone();
         msg.direction = getState().direction.clone();
         msg.agentType = this.agentType;
+        msg.attributes = getState().attributes;
         Agent.sendMessage(msg);
     }
 
@@ -225,7 +246,7 @@ public class Agent extends AgentBESA {
     private void updateShootingIntentions(WorldInfoData ird) {
         AgentState state = getState();
         for (Object3D o : ird.seenObjects) {
-            if (agentType == AgentType.Explorer && o.agentType == AgentType.Enemy) {
+            if (shallShootAgent(o.agentType)) {
                 state.shootingTarget = o.position3D;
                 clearMovementIntentions();
                 return;
@@ -376,5 +397,22 @@ public class Agent extends AgentBESA {
             getState().alive = false;
             this.shutdownAgent();
         }
+    }
+
+    protected abstract boolean shallShootAgent(AgentType type);
+
+    public List<String> getAgentsFromDirectoryService(AgentType service) {
+        List<String> aliases = new ArrayList<String>();
+        Iterator itr = AdmBESA.getInstance().searchAidByService(service.toString());
+        if (itr != null) {
+            while (itr.hasNext()) {
+                aliases.add((String) itr.next());
+            }
+        }
+        return aliases;
+    }
+    
+    public void hostageRescued(HostageRescuedData h){
+        this.shutdownAgent();
     }
 }

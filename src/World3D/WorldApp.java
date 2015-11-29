@@ -71,15 +71,8 @@ public class WorldApp extends SimpleApplication implements ActionListener {
 
         viewPort.setBackgroundColor(new ColorRGBA(0f, 0f, 0f, 1f));
         flyCam.setMoveSpeed(20);
-        Vector3f floorPos = floorNode.getWorldTranslation();
-        
-        BoundingBox box = (BoundingBox)floorNode.getWorldBound();
-        Vector3f dimensions = new Vector3f(0,0,0);
-        box.getExtent(dimensions);
-        float y = dimensions.x * 2.8f;
-        cam.setLocation(new Vector3f(0, y, 0));
-        cam.lookAt(floorPos, Vector3f.UNIT_Z.negate());
-        
+        changeToCenitalView();
+
         if (initAppCompletedListener != null) {
             initAppCompletedListener.actionPerformed(null);
         }
@@ -114,7 +107,7 @@ public class WorldApp extends SimpleApplication implements ActionListener {
 
     private void setupFloor() {
         String floorFilePath = Utils.getResourceFilePath(Config.SmaaatFloorFileName);
-        floor3D = new Floor3D(floorFilePath, assetManager, floorNode);
+        floor3D = new Floor3D(floorFilePath, this, floorNode);
 
         CollisionShape floorShape = CollisionShapeFactory.createMeshShape(floorNode);
         RigidBodyControl floorRigidBody = new RigidBodyControl(floorShape, 0);
@@ -132,6 +125,16 @@ public class WorldApp extends SimpleApplication implements ActionListener {
         inputManager.addListener(this, "KEY_3");
     }
 
+    private void changeToCenitalView() {
+        Vector3f floorPos = floorNode.getWorldTranslation();
+        BoundingBox box = (BoundingBox) floorNode.getWorldBound();
+        Vector3f dimensions = new Vector3f(0, 0, 0);
+        box.getExtent(dimensions);
+        float y = dimensions.x * 2.8f;
+        cam.setLocation(new Vector3f(0, y, 0));
+        cam.lookAt(floorPos, Vector3f.UNIT_Z.negate());
+    }
+
     @Override
     public void simpleUpdate(float tpf) {
         cameraLight.setDirection(cam.getDirection().normalizeLocal());
@@ -143,12 +146,11 @@ public class WorldApp extends SimpleApplication implements ActionListener {
 
     public void onAction(String name, boolean isPressed, float tpf) {
 
-        Vector3f position = Vector3f.ZERO;
         if (name.equals("KEY_1")) {
-            cam.setLocation(position.add(new Vector3f(0, 3, 0)));
-            cam.lookAt(position, Vector3f.UNIT_Z.negate());
+            changeToCenitalView();
         }
         if (name.equals("KEY_2")) {
+            Vector3f position = Vector3f.ZERO;
             cam.setLocation(position.add(new Vector3f(3, 0, 0)));
             cam.lookAt(position, Vector3f.UNIT_Y);
         }

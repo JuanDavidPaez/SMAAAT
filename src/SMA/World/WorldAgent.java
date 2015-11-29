@@ -9,6 +9,7 @@ import BESA.Kernel.Agent.StructBESA;
 import SMA.Agents.Agent;
 import SMA.Agents.Guards.AgentSensorGuard;
 import SMA.GuardsData.CollisionData;
+import SMA.GuardsData.HostageRescuedData;
 import SMA.GuardsData.WorldInfoData;
 import SMA.GuardsData.Message;
 import SMA.GuardsData.MoveData;
@@ -103,10 +104,6 @@ public class WorldAgent extends AgentBESA implements ActionListener {
         return result;
     }
 
-    public void addExitObject() {
-        Exit e = new Exit(this.worldApp, new Vector3f(-4.5f, 0, 4.8f), new Vector3f(0.5f, 1, 0.1f));
-    }
-
     private Character3D getRegisteredAgentCharacter(String agentAlias) {
         if (getWorldState().registeredAgents.contains(agentAlias)) {
             return findAgentCharacter(agentAlias);
@@ -127,7 +124,7 @@ public class WorldAgent extends AgentBESA implements ActionListener {
             final RegisterAgentData data = r;
             execAsyncInWorldThread(new Callable<Void>() {
                 public Void call() throws Exception {
-                    new Character3D(worldApp, agentAlias, data.position, data.direction, data.agentType);
+                    new Character3D(worldApp, agentAlias, data.position, data.direction, data.agentType, data.attributes);
                     return null;
                 }
             });
@@ -193,5 +190,11 @@ public class WorldAgent extends AgentBESA implements ActionListener {
 
     public void notifyAgentWorldInfoData(Character3D character, WorldInfoData wid) {
         replyMessage(wid);
+    }
+
+    public void notifyHostageReachExit(Character3D character) {
+        HostageRescuedData msg = new HostageRescuedData(this.getAlias(), character.getAgentAlias(), AgentSensorGuard.class);
+        Agent.sendMessage(msg);
+        getWorldState().registeredAgents.remove(character.getAgentAlias());
     }
 }

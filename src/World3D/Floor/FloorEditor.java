@@ -35,6 +35,7 @@ public class FloorEditor extends JPanel {
     private GridPoint mouseHoverGridPoint = null;
     private boolean erase;
     private boolean allowEdition = true;
+    private int lastKeyPressed;
     // </editor-fold>
 
     //<editor-fold desc="Metodos">
@@ -53,6 +54,7 @@ public class FloorEditor extends JPanel {
         this.addKeyListener(buildKeyListener());
         this.addMouseListener(buildMouseListener());
         this.addMouseMotionListener(buildMouseMotionListener());
+        this.setFocusable(true);
     }
 
     private int gridToPixel(int i) {
@@ -169,6 +171,22 @@ public class FloorEditor extends JPanel {
         repaint();
     }
 
+    private void handleMouseAddObject(Point mousePoint) {
+        GridPoint p = pixelPointToGridPoint(mousePoint);
+        if (allowEdition) {
+            if (!erase) {
+                if (lastKeyPressed == KeyEvent.VK_1) {
+                    floorData.setPointType(p, FloorPointType.Exit);
+                }
+            } else {
+                if (lastKeyPressed == KeyEvent.VK_1) {
+                    floorData.setPointType(p, FloorPointType.Empty);
+                }
+            }
+        }
+        repaint();
+    }
+
     private MouseListener buildMouseListener() {
         return new MouseListener() {
             public void mouseClicked(MouseEvent e) {
@@ -176,6 +194,9 @@ public class FloorEditor extends JPanel {
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     FloorEditor editor = (FloorEditor) e.getComponent();
                     editor.handleMouseAddWall(e.getPoint());
+                } else if (e.getButton() == MouseEvent.BUTTON3) {
+                    FloorEditor editor = (FloorEditor) e.getComponent();
+                    editor.handleMouseAddObject(e.getPoint());
                 }
             }
 
@@ -186,6 +207,8 @@ public class FloorEditor extends JPanel {
             }
 
             public void mouseEntered(MouseEvent e) {
+                FloorEditor editor = (FloorEditor) e.getComponent();
+                editor.requestFocus();
             }
 
             public void mouseExited(MouseEvent e) {
@@ -220,9 +243,11 @@ public class FloorEditor extends JPanel {
             }
 
             public void keyPressed(KeyEvent e) {
+                lastKeyPressed = e.getKeyCode();
             }
 
             public void keyReleased(KeyEvent e) {
+                lastKeyPressed = KeyEvent.VK_UNDEFINED;
             }
         };
     }
@@ -303,11 +328,13 @@ public class FloorEditor extends JPanel {
             color = Color.WHITE;
         } else if (p.getType() == FloorPointType.Unknown) {
             color = Color.GRAY;
-        }else if (p.getType() == FloorPointType.Character){
+        } else if (p.getType() == FloorPointType.Character) {
             color = Color.MAGENTA;
-        }else if (p.getType() == FloorPointType.Myself){
-            color = Color.blue;
-        }  else {
+        } else if (p.getType() == FloorPointType.Myself) {
+            color = Color.BLUE;
+        } else if (p.getType() == FloorPointType.Exit) {
+            color = Color.RED;
+        } else {
             throw new RuntimeException("No se ha especificado color para el tipo de objeto " + p.getType());
         }
         drawRectangle(g, p, null, 0, color);

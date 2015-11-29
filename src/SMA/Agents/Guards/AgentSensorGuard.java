@@ -3,8 +3,9 @@ package SMA.Agents.Guards;
 import BESA.Kernel.Agent.Event.EventBESA;
 import BESA.Kernel.Agent.GuardBESA;
 import SMA.Agents.Agent;
-import SMA.Agents.AgentState;
+import SMA.Agents.States.AgentState;
 import SMA.GuardsData.CollisionData;
+import SMA.GuardsData.HostageRescuedData;
 import SMA.GuardsData.Message;
 import SMA.GuardsData.WorldInfoData;
 import SMA.GuardsData.MoveData;
@@ -49,6 +50,10 @@ public class AgentSensorGuard extends GuardBESA {
 
         if (dataType == CollisionData.class) {
             ((Agent) agent).processBulletCollision((CollisionData) ebesa.getData());
+        }
+        
+        if (dataType == HostageRescuedData.class) {
+            ((Agent) agent).hostageRescued((HostageRescuedData) ebesa.getData());
         }
     }
 

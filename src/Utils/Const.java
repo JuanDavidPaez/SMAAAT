@@ -7,7 +7,9 @@ public final class Const {
     public static final String AgentAlias = "AgentAlias";
     public static final String Character = "Character";
     public static final String Exit = "Exit";
+    public static final String Wall = "Wall";
     public static final String Bullet = "Bullet";
+    public static final float FloorGridHeight = 0.005f;
 
     public static class Aliases {
 

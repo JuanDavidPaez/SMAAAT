@@ -3,7 +3,7 @@ package World3D.Floor;
 public class FloorPoint extends GridPoint {
 
     public enum FloorPointType {
-        Empty, Wall, Unknown, Character, Myself
+        Empty, Wall, Unknown, Character, Myself, Exit
     }
     private final int id;
     private FloorPointType type;

@@ -1,5 +1,6 @@
 package World3D.Floor;
 
+import World3D.Floor.FloorPoint.FloorPointType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,11 +9,13 @@ public class GridRegion {
     public GridPoint startPoint;
     public int width;
     public int height;
+    public FloorPointType type;
 
-    public GridRegion(GridPoint startPoint, int width, int height) {
+    public GridRegion(GridPoint startPoint, int width, int height, FloorPointType type) {
         this.startPoint = startPoint;
         this.width = width;
         this.height = height;
+        this.type = type;
     }
 
     public static List<GridRegion> floorWallPointsToRegions(FloorData floorData) {
@@ -26,14 +29,14 @@ public class GridRegion {
             }
         }
         /*Translado de puntos desde la lista a la matriz*/
-        for (GridPoint w : floorData.getWalls()) {
+        for (FloorPoint w : floorData.getWalls()) {
             wallArray[w.y][w.x] = 0;
         }
 
         int ySize = wallArray.length;
         int xSize = wallArray[0].length;
         int xid = 0, yid = 0;
-        /*Busqueda de lineas horizontales*/
+        /*Busqueda de lineas horizontales :1*/
         for (int y = 0; y < ySize; y++) {
             for (int x = 0; x < xSize; x++) {
                 if (wallArray[y][x] == 0) {
@@ -46,7 +49,7 @@ public class GridRegion {
                 }
             }
         }
-        /*Busqueda de lineas verticales*/
+        /*Busqueda de lineas verticales :2*/
         for (int x = 0; x < xSize; x++) {
             for (int y = 0; y < ySize; y++) {
                 if (wallArray[y][x] == 0) {
@@ -60,13 +63,24 @@ public class GridRegion {
                 }
             }
         }
+        /*Ajuste de Exits*/
+        for (int x = 0; x < xSize; x++) {
+            for (int y = 0; y < ySize; y++) {
+                if (wallArray[y][x] != 0) {
+                    if (floorData.getPointFromCoordinates(x, y).getType() == FloorPointType.Exit) {
+                        wallArray[y][x] += 10;
+                    }
+                }
+            }
+        }
+
         /*Regiones Horizontales*/
         for (int y = 0; y < ySize; y++) {
             GridRegion gr = null;
             for (int x = 0; x < xSize; x++) {
                 if (wallArray[y][x] == 1) {
                     if (gr == null) {
-                        gr = new GridRegion(new GridPoint(x, y), 1, 1);
+                        gr = new GridRegion(new GridPoint(x, y), 1, 1, FloorPointType.Wall);
                     } else {
                         gr.width++;
                     }
@@ -81,14 +95,55 @@ public class GridRegion {
                 regions.add(gr);
             }
         }
-
+        /*Regiones Horizontales Exit*/
+        for (int y = 0; y < ySize; y++) {
+            GridRegion gr = null;
+            for (int x = 0; x < xSize; x++) {
+                if (wallArray[y][x] == 11) {
+                    if (gr == null) {
+                        gr = new GridRegion(new GridPoint(x, y), 1, 1, FloorPointType.Exit);
+                    } else {
+                        gr.width++;
+                    }
+                } else {
+                    if (gr != null) {
+                        regions.add(gr);
+                        gr = null;
+                    }
+                }
+            }
+            if (gr != null) {
+                regions.add(gr);
+            }
+        }
         /*Regiones Verticales*/
         for (int x = 0; x < xSize; x++) {
             GridRegion gr = null;
             for (int y = 0; y < ySize; y++) {
                 if (wallArray[y][x] == 2) {
                     if (gr == null) {
-                        gr = new GridRegion(new GridPoint(x, y), 1, 1);
+                        gr = new GridRegion(new GridPoint(x, y), 1, 1,FloorPointType.Wall);
+                    } else {
+                        gr.height++;
+                    }
+                } else {
+                    if (gr != null) {
+                        regions.add(gr);
+                        gr = null;
+                    }
+                }
+            }
+            if (gr != null) {
+                regions.add(gr);
+            }
+        }
+        /*Regiones Verticales Exit*/
+        for (int x = 0; x < xSize; x++) {
+            GridRegion gr = null;
+            for (int y = 0; y < ySize; y++) {
+                if (wallArray[y][x] == 12) {
+                    if (gr == null) {
+                        gr = new GridRegion(new GridPoint(x, y), 1, 1,FloorPointType.Exit);
                     } else {
                         gr.height++;
                     }

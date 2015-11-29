@@ -87,6 +87,20 @@ public class Utils {
         }
         return geo;
     }
+    
+    public static Geometry createCircle(AssetManager assetManager, Vector3f pos, float radius, Node node, ColorRGBA color) {
+
+        Circle3d c = new Circle3d(radius);
+        Geometry geo = new Geometry(Const.DebugWord + "Circle", c);
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);
+        geo.setMaterial(mat);
+        geo.setLocalTranslation(pos);
+        if (node != null) {
+            node.attachChild(geo);
+        }
+        return geo;
+    }
 
     public static Geometry createGrid(AssetManager assetManager, int xSize, int ySize, float resolution, Vector3f pos, Node node, ColorRGBA color) {
         Vector3f _pos = pos.clone();
