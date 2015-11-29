@@ -61,11 +61,11 @@ public class A_Star {
         while (openSet.size() > 0) {
             String exdebug = "";
             try {
-                exdebug = printCostException(openSet);
+                //exdebug = printCostException(openSet);
                 Collections.sort(openSet, new NodeCostComparator());
             } catch (Exception ex) {
-                System.out.println(exdebug);
-                throw new RuntimeException(ex.toString());
+                //System.out.println(exdebug);
+                //throw new RuntimeException(ex.toString());
             }
 
             int currentNodeId = openSet.get(0);

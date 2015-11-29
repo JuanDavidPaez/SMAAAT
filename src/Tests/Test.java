@@ -1,23 +1,11 @@
 package Tests;
 
-import AI.Pathfinding.A_Star_Node;
-import Utils.Const;
-import Utils.Utils;
 import World3D.Floor.Floor3D;
 import World3D.Floor.FloorData;
-import World3D.Floor.FloorPoint;
-import World3D.Floor.GridPoint;
-import World3D.Floor.GridRegion;
 import com.jme3.app.SimpleApplication;
-import com.jme3.asset.AssetManager;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Node;
 import com.jme3.system.AppSettings;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,7 +13,7 @@ import java.util.logging.Logger;
 public class Test extends SimpleApplication {
 
     public static void main(String[] args) {
-        
+
     }
 
     public static void createGame() {
@@ -44,7 +32,7 @@ public class Test extends SimpleApplication {
     public void simpleInitApp() {
 
         FloorData fd = new FloorData(4, 4, 10);
-        Floor3D f = new Floor3D(fd, assetManager);
+        Floor3D f = new Floor3D(fd, assetManager, rootNode);
         Node floorNode = f.getFloorNode();
         rootNode.attachChild(floorNode);
 

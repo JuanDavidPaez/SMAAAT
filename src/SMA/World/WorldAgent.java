@@ -7,16 +7,22 @@ import BESA.Kernel.Agent.KernellAgentExceptionBESA;
 import BESA.Kernel.Agent.StateBESA;
 import BESA.Kernel.Agent.StructBESA;
 import SMA.Agents.Agent;
-import SMA.GuardsData.InfoRequestData;
+import SMA.Agents.Guards.AgentSensorGuard;
+import SMA.GuardsData.CollisionData;
+import SMA.GuardsData.WorldInfoData;
+import SMA.GuardsData.Message;
 import SMA.GuardsData.MoveData;
 import SMA.GuardsData.RegisterAgentData;
+import SMA.GuardsData.ShootData;
 import Utils.Const;
-import Utils.Utils;
 import SMA.World.Guards.WorldInfoRequestGuard;
+import Utils.Config;
 import Utils.Const.Aliases;
 import World3D.Character3D;
 import World3D.Exit;
+import com.jme3.collision.CollisionResult;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Spatial;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.concurrent.Callable;
@@ -44,8 +50,8 @@ public class WorldAgent extends AgentBESA implements ActionListener {
     }
 
     private WorldAgent(String alias, StateBESA state, StructBESA structAgent) throws KernellAgentExceptionBESA {
-        super(alias, state, structAgent, Const.BESApassword);
-        worldApp = WorldApp.createWorldApp();
+        super(alias, state, structAgent, Config.BESApassword);
+        worldApp = WorldApp.createWorldApp(this);
         worldApp.setInitAppCompletedListener(this);
         worldApp.start();
     }
@@ -76,6 +82,15 @@ public class WorldAgent extends AgentBESA implements ActionListener {
         return this.worldApp;
     }
 
+    private Character3D findAgentCharacter(String agentAlias) {
+        Spatial s = worldApp.getCharacterNode().getChild(Agent.getAgentNodeName(agentAlias));
+        if (s != null) {
+            return s.getUserData(Const.Character);
+        } else {
+            return null;
+        }
+    }
+
     //******************BEHAVIORS******************
     private <T> T execAsyncInWorldThread(Callable<T> func) {
         Future<T> future = worldApp.enqueue(func);
@@ -92,14 +107,22 @@ public class WorldAgent extends AgentBESA implements ActionListener {
         Exit e = new Exit(this.worldApp, new Vector3f(-4.5f, 0, 4.8f), new Vector3f(0.5f, 1, 0.1f));
     }
 
-    private boolean agentIsRegistered(String agentAlias) {
-        return (getWorldState().registeredAgents.contains(agentAlias));
+    private Character3D getRegisteredAgentCharacter(String agentAlias) {
+        if (getWorldState().registeredAgents.contains(agentAlias)) {
+            return findAgentCharacter(agentAlias);
+        }
+        return null;
+    }
+
+    private void replyMessage(Message msg) {
+        msg.updateToReply();
+        Agent.sendMessage(msg);
     }
 
     public void handleRegisterAgentRequest(RegisterAgentData r) {
         WorldState s = getWorldState();
         final String agentAlias = r.fromAgentAlias();
-        if (!agentIsRegistered(agentAlias)) {
+        if (getRegisteredAgentCharacter(agentAlias) == null) {
             s.registeredAgents.add(agentAlias);
             final RegisterAgentData data = r;
             execAsyncInWorldThread(new Callable<Void>() {
@@ -108,37 +131,67 @@ public class WorldAgent extends AgentBESA implements ActionListener {
                     return null;
                 }
             });
-            r.updateToReply();
-            Agent.sendMessage(r);
+            replyMessage(r);
         }
     }
 
-    public void handleWorldInfoRequest(InfoRequestData i) {
-        final String agentAlias = i.fromAgentAlias();
-        if (agentIsRegistered(agentAlias)) {
-            final InfoRequestData aux = i;
-            /*execAsyncInWorldThread(new Callable<Void>() {
-                public Void call() throws Exception {*/
-                    Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(agentAlias)).getUserData(Const.Character);
-                    aux.position = c.getPosition();
-                    aux.direction = c.getDirection();
-                    aux.partialFloorView = c.getCurrentFloorView();
-                    aux.seenObjects = c.getSeenCharacters();
-                    /*return null;
-                }
-            });*/
-            i.updateToReply();
-            Agent.sendMessage(i);
+    public void handleWorldInfoRequest(WorldInfoData i) {
+        final Character3D c = getRegisteredAgentCharacter(i.fromAgentAlias());
+        if (c == null) {
+            return;
         }
+        c.enqueueWorldInfoRequest(i);
+    }
+
+    @Deprecated
+    public void handleWorldInfoRequest_Old(WorldInfoData i) {
+        final Character3D c = getRegisteredAgentCharacter(i.fromAgentAlias());
+        if (c == null) {
+            return;
+        }
+
+        final WorldInfoData aux = i;
+        execAsyncInWorldThread(new Callable<Void>() {
+            public Void call() throws Exception {
+                aux.position = c.getPosition();
+                aux.direction = c.getDirection();
+                aux.partialFloorView = c.getCurrentFloorView();
+                aux.seenObjects = c.getSeenCharacters();
+                return null;
+            }
+        });
+        replyMessage(i);
     }
 
     public void handleMoveRequest(final MoveData md) {
-        final String agentAlias = md.fromAgentAlias();
-        if (agentIsRegistered(agentAlias)) {
-            Character3D c = worldApp.getRootNode().getChild(Utils.GetNodeName(agentAlias)).getUserData(Const.Character);
-            c.moveCharacter(md);
-            md.updateToReply();
-            Agent.sendMessage(md);
+        final Character3D c = getRegisteredAgentCharacter(md.fromAgentAlias());
+        if (c == null) {
+            return;
         }
+        c.moveCharacter(md);
+        replyMessage(md);
+    }
+
+    public void handleShootRequest(ShootData i) {
+        final Character3D c = getRegisteredAgentCharacter(i.fromAgentAlias());
+        if (c == null) {
+            return;
+        }
+        c.shoot(i);
+        replyMessage(i);
+    }
+
+    public void notifyAgentHitttedByBullet(Character3D character, CollisionResult collision) {
+        CollisionData msg = new CollisionData(this.getAlias(), character.getAgentAlias(), AgentSensorGuard.class);
+        msg.contactPoint = collision.getContactPoint();
+        msg.live = character.getLive();
+        Agent.sendMessage(msg);
+        if (character.getLive() == 0) {
+            getWorldState().registeredAgents.remove(character.getAgentAlias());
+        }
+    }
+
+    public void notifyAgentWorldInfoData(Character3D character, WorldInfoData wid) {
+        replyMessage(wid);
     }
 }

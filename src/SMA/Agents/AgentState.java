@@ -18,6 +18,8 @@ import java.util.Set;
 
 public class AgentState extends StateBESA implements PaintObjectsSupplier {
 
+    public enum Intention {Patrol,Shoot};
+    
     public static float minDistanceFromTargetPoint = 0.05f;
     public boolean agentRegisteredInWorld = false;
     public Vector3f position;
@@ -27,11 +29,15 @@ public class AgentState extends StateBESA implements PaintObjectsSupplier {
     public GridPoint globalTargetPosition;
     public Vector3f nextMoveToTargetPosition;
     public ObjectsLists agentsList;
+    public Intention intention;
+    public Vector3f shootingTarget;
+    public boolean alive = true;
 
     public AgentState(Vector3f position, Vector3f direction) {
         this.position = position;
         this.direction = direction;
         this.agentsList = new ObjectsLists();
+        this.intention = Intention.Patrol;
     }
 
     public FloorPoint getPointPosition(Vector3f pos) {

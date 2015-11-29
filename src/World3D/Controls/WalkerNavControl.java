@@ -49,18 +49,20 @@ public class WalkerNavControl extends AbstractControl implements ActionListener 
     }
 
     private void setupKeys(InputManager inputManager) {
-        inputManager.addMapping("TurnLeft", new KeyTrigger(KeyInput.KEY_NUMPAD4));
-        inputManager.addMapping("TurnRight", new KeyTrigger(KeyInput.KEY_NUMPAD6));
-        inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_NUMPAD8));
-        inputManager.addMapping("Down", new KeyTrigger(KeyInput.KEY_NUMPAD2));
-        inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_NUMPAD7));
-        inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_NUMPAD9));
-        inputManager.addListener(this, "TurnLeft");
-        inputManager.addListener(this, "TurnRight");
-        inputManager.addListener(this, "Left");
-        inputManager.addListener(this, "Right");
-        inputManager.addListener(this, "Up");
-        inputManager.addListener(this, "Down");
+        if (1==2) {
+            inputManager.addMapping("TurnLeft", new KeyTrigger(KeyInput.KEY_NUMPAD4));
+            inputManager.addMapping("TurnRight", new KeyTrigger(KeyInput.KEY_NUMPAD6));
+            inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_NUMPAD8));
+            inputManager.addMapping("Down", new KeyTrigger(KeyInput.KEY_NUMPAD2));
+            inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_NUMPAD7));
+            inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_NUMPAD9));
+            inputManager.addListener(this, "TurnLeft");
+            inputManager.addListener(this, "TurnRight");
+            inputManager.addListener(this, "Left");
+            inputManager.addListener(this, "Right");
+            inputManager.addListener(this, "Up");
+            inputManager.addListener(this, "Down");
+        }
     }
 
     public void onAction(String name, boolean isPressed, float tpf) {

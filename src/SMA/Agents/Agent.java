@@ -13,12 +13,15 @@ import BESA.Kernel.Agent.StructBESA;
 import BESA.Kernel.System.AdmBESA;
 import BESA.Kernel.System.Directory.AgHandlerBESA;
 import SMA.Agents.Guards.AgentSensorGuard;
-import SMA.GuardsData.InfoRequestData;
+import SMA.GuardsData.CollisionData;
+import SMA.GuardsData.WorldInfoData;
 import SMA.GuardsData.Message;
 import SMA.GuardsData.MoveData;
 import SMA.GuardsData.RegisterAgentData;
+import SMA.GuardsData.ShootData;
 import Utils.Const;
 import SMA.World.Guards.WorldInfoRequestGuard;
+import Utils.Config;
 import Utils.Const.Aliases;
 import Utils.Utils;
 import World3D.Floor.Floor3D;
@@ -42,7 +45,9 @@ public class Agent extends AgentBESA {
 
         Explorer, Hostage, Enemy, Protector
     };
-    AgentType type;
+    private static int counter = 0;
+    public final int id;
+    private final AgentType agentType;
 
     public static Agent CreateAgent(AgentType type, String alias, Vector3f position, Vector3f direction) {
         AgentState e = new AgentState(position, direction);
@@ -61,8 +66,10 @@ public class Agent extends AgentBESA {
     }
 
     public Agent(AgentType type, String alias, StateBESA state, StructBESA structAgent) throws KernellAgentExceptionBESA {
-        super(alias, state, structAgent, Const.BESApassword);
-        this.type = type;
+        super(alias, state, structAgent, Config.BESApassword);
+        counter++;
+        this.id = counter;
+        this.agentType = type;
     }
 
     @Override
@@ -84,6 +91,14 @@ public class Agent extends AgentBESA {
         return (AgentState) this.state;
     }
 
+    public AgentType getAgentType() {
+        return agentType;
+    }
+
+    public int getId() {
+        return id;
+    }
+
     private static void sendMessage(Class guard, String alias, DataBESA data) {
         EventBESA ev = new EventBESA(guard.getName(), data);
         try {
@@ -98,20 +113,22 @@ public class Agent extends AgentBESA {
         sendMessage(msg.toGuard(), msg.toAgentAlias(), msg);
     }
 
+    public static String getAgentNodeName(String name) {
+        return Const.NodePrefix + name;
+    }
+
     public void sendWorldRegisterRequest() {
         RegisterAgentData msg = new RegisterAgentData(this.getAlias(), Aliases.WorldAgentAlias, WorldInfoRequestGuard.class);
         msg.setReplyGuard(AgentSensorGuard.class);
         msg.position = getState().position.clone();
         msg.direction = getState().direction.clone();
-        msg.agentType = this.type;
-        //waitTime(1);
+        msg.agentType = this.agentType;
         Agent.sendMessage(msg);
     }
 
     public void sendWorldInfoRequest() {
-        InfoRequestData msg = new InfoRequestData(this.getAlias(), Aliases.WorldAgentAlias, WorldInfoRequestGuard.class);
+        WorldInfoData msg = new WorldInfoData(this.getAlias(), Aliases.WorldAgentAlias, WorldInfoRequestGuard.class);
         msg.setReplyGuard(AgentSensorGuard.class);
-        //waitTime(1);
         Agent.sendMessage(msg);
     }
 
@@ -131,18 +148,32 @@ public class Agent extends AgentBESA {
         Agent.sendMessage(move);
     }
 
-    public void processWorldInfoResponse(InfoRequestData i) {
+    public void sendShootRequest() {
+        ShootData msg = new ShootData(this.getAlias(), Aliases.WorldAgentAlias, WorldInfoRequestGuard.class);
+        msg.setReplyGuard(AgentSensorGuard.class);
+        msg.target = getState().shootingTarget;
+        Agent.sendMessage(msg);
+    }
+
+    public void processWorldInfoResponse(WorldInfoData i) {
+
         boolean dataChanged = updateAgentStateWithWorldInfo(i);
-        updateGlobalDesiredPosition();
-        updateMovementIntentions(dataChanged);
+        updateShootingIntentions(i);
+        if (getState().shootingTarget == null) {
+            updateGlobalDesiredPosition();
+            updateMovementIntentions(dataChanged);
+        }
+
         if (getState().nextMoveToTargetPosition != null) {
             sendMoveRequest(getState().nextMoveToTargetPosition);
+        } else if (getState().shootingTarget != null) {
+            sendShootRequest();
         } else {
             sendWorldInfoRequest();
         }
     }
 
-    private boolean updateAgentStateWithWorldInfo(InfoRequestData i) {
+    private boolean updateAgentStateWithWorldInfo(WorldInfoData i) {
         boolean dataChanged = false;
         AgentState state = getState();
         state.position = i.position;
@@ -153,7 +184,7 @@ public class Agent extends AgentBESA {
             state.floor = new FloorData(i.partialFloorView.getParentFloorXSize(),
                     i.partialFloorView.getParentFloorYSize(),
                     i.partialFloorView.pxResolution, FloorPoint.FloorPointType.Unknown);
-            if (1 == 1 && Const.inDebugMode) {
+            if (Config.ShowAgentMapInJFrame && Config.InDebugMode) {
                 state.floor.pointsSupplier = state;
                 state.floor.showInJFrame();
             }
@@ -166,7 +197,7 @@ public class Agent extends AgentBESA {
         return dataChanged;
     }
 
-    private boolean updateCurrentSeenObjects(InfoRequestData ird) {
+    private boolean updateCurrentSeenObjects(WorldInfoData ird) {
         AgentState state = getState();
         boolean change = false;
         change = state.agentsList.updateObjects(ird.seenObjects);
@@ -191,6 +222,18 @@ public class Agent extends AgentBESA {
         return change;
     }
 
+    private void updateShootingIntentions(WorldInfoData ird) {
+        AgentState state = getState();
+        for (Object3D o : ird.seenObjects) {
+            if (agentType == AgentType.Explorer && o.agentType == AgentType.Enemy) {
+                state.shootingTarget = o.position3D;
+                clearMovementIntentions();
+                return;
+            }
+        }
+        state.shootingTarget = null;
+    }
+
     private void updateGlobalDesiredPosition() {
         boolean reset = false;
         AgentState state = getState();
@@ -212,10 +255,14 @@ public class Agent extends AgentBESA {
         }
         /*Limpia la posicion deseada y el plan*/
         if (reset) {
-            state.nextMoveToTargetPosition = null;
-            state.currentPatrolPath = null;
-            state.globalTargetPosition = null;
+            clearMovementIntentions();
         }
+    }
+
+    private void clearMovementIntentions() {
+        getState().nextMoveToTargetPosition = null;
+        getState().currentPatrolPath = null;
+        getState().globalTargetPosition = null;
     }
 
     private void updateMovementIntentions(boolean dataChanged) {
@@ -239,7 +286,7 @@ public class Agent extends AgentBESA {
                 if (movementPath != null) {
                     state.currentPatrolPath = new PatrolPath(movementPath);
                 }
-                if (Const.inDebugMode) {
+                if (Config.InDebugMode) {
                     floor.addPath("Path", movementPath);
                 }
             }
@@ -321,6 +368,13 @@ public class Agent extends AgentBESA {
             } catch (InterruptedException ex) {
                 Logger.getLogger(Agent.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
+    }
+
+    public void processBulletCollision(CollisionData cd) {
+        if (cd.live == 0) {
+            getState().alive = false;
+            this.shutdownAgent();
         }
     }
 }

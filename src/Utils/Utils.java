@@ -20,10 +20,6 @@ import java.util.List;
 
 public class Utils {
 
-    public static String GetNodeName(String name) {
-        return Const.NodePrefix + name;
-    }
-
     public static Geometry createDebugArrow(AssetManager assetManager, Vector3f pos, Vector3f dir, Node node) {
         Arrow arrow = new Arrow(Vector3f.UNIT_Z.mult(dir.length()));
         arrow.setLineWidth(3);

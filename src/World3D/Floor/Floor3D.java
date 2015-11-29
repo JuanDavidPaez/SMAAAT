@@ -1,5 +1,6 @@
 package World3D.Floor;
 
+import Utils.Config;
 import Utils.Const;
 import Utils.Utils;
 import com.jme3.asset.AssetManager;
@@ -10,18 +11,18 @@ import java.util.List;
 
 public class Floor3D {
 
-    public static float FloorGridCellSize = Const.FloorGridCellSize;
+    public static float FloorGridCellSize = Config.FloorGridCellSize;
     private FloorData floorData;
     private Node floorNode;
 
-    public Floor3D(String floorFilePath, AssetManager assetManager) {
-        floorNode = new Node("floor");
+    public Floor3D(String floorFilePath, AssetManager assetManager, Node floorNode) {
+        this.floorNode = floorNode;
         this.floorData = FloorData.loadDataFromFile(floorFilePath);
         createFloorGeometryNode(assetManager);
     }
 
-    public Floor3D(FloorData floorData, AssetManager assetManager) {
-        floorNode = new Node("floor");
+    public Floor3D(FloorData floorData, AssetManager assetManager, Node floorNode) {
+        this.floorNode = floorNode;
         this.floorData = floorData;
         createFloorGeometryNode(assetManager);
     }
@@ -76,7 +77,7 @@ public class Floor3D {
     }
 
     public FloorDataChunk getFloorDataPartialView(GridPoint center, float viewRadius) {
-        int radius = (int)(viewRadius/Const.FloorGridCellSize);
+        int radius = (int)(viewRadius/Config.FloorGridCellSize);
         return floorData.getFloorDataChunk(center, radius);
     }
 }
