@@ -25,6 +25,17 @@ public class PatrolPath {
         }
     }
 
+    public PathPoint getNextPoint2Visit() {
+        PathPoint p = null;
+        for (PathPoint pp : this.points) {
+            if (!pp.visited) {
+                p = pp;
+                break;
+            }
+        }
+        return p;
+    }
+
     public PathPoint getNextPoint(GridPoint currentPosition) {
         updateCurrentPosition(currentPosition);
         PathPoint p = getNextPointToVisit();
@@ -36,6 +47,9 @@ public class PatrolPath {
         for (PathPoint pp : this.points) {
             if (!pp.visited) {
                 p = pp;
+                if (pp.getTargetTimeStamp() == null) {
+                    pp.setAsTarget();
+                }
                 break;
             }
         }
@@ -55,6 +69,8 @@ public class PatrolPath {
     public class PathPoint extends GridPoint {
 
         boolean visited = false;
+        Long targetTimeStamp = null;
+        Long visitedTimeStamp = null;
 
         public PathPoint(int x, int y) {
             this.x = x;
@@ -68,6 +84,32 @@ public class PatrolPath {
 
         public void setVisited(boolean v) {
             this.visited = v;
+            this.visitedTimeStamp = System.currentTimeMillis();
+        }
+
+        public boolean isVisited() {
+            return visited;
+        }
+
+        public Long getVisitedTimeStamp() {
+            return visitedTimeStamp;
+        }
+
+        public void setAsTarget() {
+            this.targetTimeStamp = System.currentTimeMillis();
+        }
+
+        public Long getTargetTimeStamp() {
+            return targetTimeStamp;
+        }
+
+        @Override
+        public PathPoint clone() {
+            PathPoint p = new PathPoint(this.x, this.y);
+            p.visited = visited;
+            p.targetTimeStamp = (this.targetTimeStamp == null) ? null : this.targetTimeStamp.longValue();
+            p.visitedTimeStamp = (this.visitedTimeStamp == null) ? null : this.visitedTimeStamp.longValue();
+            return p;
         }
     }
 }

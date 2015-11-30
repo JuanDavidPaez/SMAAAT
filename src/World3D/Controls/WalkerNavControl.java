@@ -18,7 +18,7 @@ import com.jme3.scene.control.AbstractControl;
 
 public class WalkerNavControl extends AbstractControl implements ActionListener {
 
-    private boolean forward, backward, left, right, turnLeft, turnRight;
+    private boolean forward, backward, left, right, turnLeft, turnRight, halfSpeed;
     private Quaternion desiredRotation;
     private Vector3f desiredDirection;
     private Vector3f walkDirection = new Vector3f(0, 0, 0);
@@ -49,7 +49,7 @@ public class WalkerNavControl extends AbstractControl implements ActionListener 
     }
 
     private void setupKeys(InputManager inputManager) {
-        if (1==2) {
+        if (1 == 2) {
             inputManager.addMapping("TurnLeft", new KeyTrigger(KeyInput.KEY_NUMPAD4));
             inputManager.addMapping("TurnRight", new KeyTrigger(KeyInput.KEY_NUMPAD6));
             inputManager.addMapping("Up", new KeyTrigger(KeyInput.KEY_NUMPAD8));
@@ -90,6 +90,10 @@ public class WalkerNavControl extends AbstractControl implements ActionListener 
     private void move(float tpf) {
 
         float speed = character.getSpeed();
+        if (halfSpeed) {
+            speed = speed / 4;
+        }
+
         BetterCharacterControl control = spatial.getControl(BetterCharacterControl.class);
         Vector3f modelForwardDir = spatial.getWorldRotation().mult(Vector3f.UNIT_Z);
         walkDirection.set(0, 0, 0);
@@ -106,7 +110,7 @@ public class WalkerNavControl extends AbstractControl implements ActionListener 
         if (backward) {
             walkDirection.addLocal(modelForwardDir.negate().multLocal(speed));
         }
-        control.setWalkDirection(walkDirection);
+        
 
         if (turnLeft) {
             Quaternion rotateL = new Quaternion().fromAngleAxis(FastMath.PI * tpf, Vector3f.UNIT_Y);
@@ -124,7 +128,8 @@ public class WalkerNavControl extends AbstractControl implements ActionListener 
             viewDirection = desiredDirection;
         }
         control.setViewDirection(viewDirection);
-
+        control.setWalkDirection(walkDirection);
+        
         if (pendingMoveRequest) {
             pendingMoveRequest = false;
             resetMoveFlags();
@@ -151,5 +156,6 @@ public class WalkerNavControl extends AbstractControl implements ActionListener 
         this.forward = md.forward;
         this.desiredRotation = md.rotation;
         this.desiredDirection = md.direction;
+        this.halfSpeed = md.halfSpeed;
     }
 }

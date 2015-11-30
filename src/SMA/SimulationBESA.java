@@ -41,12 +41,12 @@ public class SimulationBESA {
     }
 
     protected void initSpecificAgentsSmallFloor() {
-        Vector3f pos1 = worldAgent.getWorldApp().getFloor3D().GridPointToVector3f(new GridPoint(6, 6));
+        Vector3f pos1 = worldAgent.getWorldApp().getFloor3D().GridPointToVector3f(new GridPoint(4, 6));
         Agent a1 = Agent.CreateAgent(AgentType.Explorer, pos1, new Vector3f(0, 0, 1));
         a1.start();
 
         Vector3f pos2 = worldAgent.getWorldApp().getFloor3D().GridPointToVector3f(new GridPoint(8, 6));
-        Agent a2 = Agent.CreateAgent(AgentType.Enemy, pos2, new Vector3f(0, 0, 1));
+        Agent a2 = Agent.CreateAgent(AgentType.Explorer, pos2, new Vector3f(0, 0, 1));
         a2.start();
 
     }

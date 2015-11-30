@@ -20,6 +20,7 @@ public class AgentState extends StateBESA implements PaintObjectsSupplier {
     public enum Intention {Patrol,Shoot};
     
     public static float minDistanceFromTargetPoint = 0.05f;
+    public static float breakDistanceFromTargetPoint = minDistanceFromTargetPoint*2;
     public boolean agentRegisteredInWorld = false;
     public Attributes attributes;
     public Vector3f position;

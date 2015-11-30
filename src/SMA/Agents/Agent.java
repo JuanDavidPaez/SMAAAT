@@ -15,6 +15,7 @@ import BESA.Kernel.System.AdmBESA;
 import BESA.Kernel.System.Directory.AgHandlerBESA;
 import SMA.Agents.AParams;
 import SMA.Agents.Guards.AgentSensorGuard;
+import SMA.Agents.States.AgentState.Intention;
 import SMA.GuardsData.CollisionData;
 import SMA.GuardsData.HostageRescuedData;
 import SMA.GuardsData.WorldInfoData;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -165,6 +167,7 @@ public abstract class Agent extends AgentBESA {
         move.setReplyGuard(AgentSensorGuard.class);
         move.direction = direction;
         move.forward = true;
+        move.halfSpeed = (position.distance(nextMovePosition) <= AgentState.breakDistanceFromTargetPoint);
         //waitTime(1);
         Agent.sendMessage(move);
     }
@@ -180,6 +183,7 @@ public abstract class Agent extends AgentBESA {
 
         boolean dataChanged = updateAgentStateWithWorldInfo(i);
         updateShootingIntentions(i);
+
         if (getState().shootingTarget == null) {
             updateGlobalDesiredPosition();
             updateMovementIntentions(dataChanged);
@@ -258,9 +262,11 @@ public abstract class Agent extends AgentBESA {
     private void updateGlobalDesiredPosition() {
         boolean reset = false;
         AgentState state = getState();
+        boolean globalTargetJustSelected = false;
         /*Nueva posicion aleatoria*/
         if (state.globalTargetPosition == null) {
             state.globalTargetPosition = selectExploringMapDesiredPosition();
+            globalTargetJustSelected = true;
         }
         /*Remueve la posicion si el agente ya llegó a ella*/
         if (!reset && state.globalTargetPosition != null && agentIsInTargetPosition(state.globalTargetPosition)) {
@@ -268,6 +274,10 @@ public abstract class Agent extends AgentBESA {
         }
         /*Desiste de la posición si ésta resultó estar ocupada por un obstaculo*/
         if (!reset && state.globalTargetPosition != null && state.floor.isObstacle(state.floor.getPointFromCoordinates(state.globalTargetPosition))) {
+            reset = true;
+        }
+        /*Desiste de la posición deseada si ésta no es alcanzable*/
+        if (!reset && !globalTargetJustSelected && state.globalTargetPosition != null && state.currentPatrolPath == null) {
             reset = true;
         }
         /*Desiste de la posición deseada si ésta no es alcanzable*/
@@ -293,8 +303,9 @@ public abstract class Agent extends AgentBESA {
             GridPoint currentPositionPoint = state.getPointPosition(state.position);
             GridPoint globalTargetPositionPoint = state.globalTargetPosition.Clone();
 
-            /*Solicita cambiar el plan si se encuentra un obstaculo en la ruta del plan actual*/
+            /*Solicita revisar la validez del plan actual dado que la información visual cambió*/
             if (state.currentPatrolPath != null && dataChanged) {
+                /*Si el plan ya no es valido, se calcula uno nuevo*/
                 if (!isPatrolPathStillValid()) {
                     state.currentPatrolPath = null;
                 }
@@ -311,6 +322,7 @@ public abstract class Agent extends AgentBESA {
                     floor.addPath("Path", movementPath);
                 }
             }
+
             /*Se busca el siguiente paso en el plan de movimiento*/
             if (state.currentPatrolPath != null && state.currentPatrolPath.points.size() > 0) {
                 if (state.nextMoveToTargetPosition == null || agentIsInTargetPositionVector(state.nextMoveToTargetPosition)) {
@@ -321,6 +333,23 @@ public abstract class Agent extends AgentBESA {
                     }
                 }
             }
+
+            /*Retroceso si el agente permanece en la misma posicion por un segundo*/
+            /*
+            if (state.currentPatrolPath != null && state.nextMoveToTargetPosition != null) {
+                PathPoint nextPoint = state.currentPatrolPath.getNextPoint2Visit();
+                if (nextPoint != null) {
+                    if (nextPoint.getTargetTimeStamp() == null) {
+                        nextPoint.setAsTarget();
+                    }
+                    long time = System.currentTimeMillis();
+                    long diffMillis = TimeUnit.MILLISECONDS.toMillis(time - nextPoint.getTargetTimeStamp());
+                    if (diffMillis >= 800) {
+                        Vector3f direction = state.nextMoveToTargetPosition.subtract(state.position).normalize().negate();
+                        state.nextMoveToTargetPosition = state.nextMoveToTargetPosition.add(direction);
+                    }
+                }
+            }*/
         }
     }
 
@@ -338,6 +367,7 @@ public abstract class Agent extends AgentBESA {
     private Path findPathAStarAlgorithm(FloorData floor, GridPoint currentPosition, GridPoint targetPosition) {
         Path path = null;
         A_Star aStar = new A_Star(floor.XSize, floor.YSize);
+        aStar.agentAlias = this.getAlias();
         aStar.addObstacles(floor.floorObstaclesToArray());
 
         List<FloorPoint> agentsPositions = getState().getSeenAgentsPositionPoints();
@@ -370,7 +400,7 @@ public abstract class Agent extends AgentBESA {
         return true;
     }
 
-    private GridPoint selectExploringMapDesiredPosition() {
+    protected GridPoint selectExploringMapDesiredPosition() {
         GridPoint targetPoint = null;
         AgentState state = getState();
         int[] points = state.floor.getPointsArray(EnumSet.of(FloorPointType.Unknown));
@@ -411,8 +441,8 @@ public abstract class Agent extends AgentBESA {
         }
         return aliases;
     }
-    
-    public void hostageRescued(HostageRescuedData h){
+
+    public void hostageRescued(HostageRescuedData h) {
         this.shutdownAgent();
     }
 }

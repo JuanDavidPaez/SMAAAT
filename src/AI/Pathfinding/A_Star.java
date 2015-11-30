@@ -1,6 +1,7 @@
 package AI.Pathfinding;
 
 import AI.Pathfinding.A_Star_Node.AsNodeType;
+import World3D.Floor.GridPoint;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,7 +17,7 @@ public class A_Star {
     private List<Integer> openSet;
     private List<Integer> closedSet;
     private int[] path;
-
+    public String agentAlias;/*Quitar después, revisión excepción Costo*/
     public A_Star(int XSize, int YSize) {
         this.XSize = XSize;
         this.YSize = YSize;
@@ -64,6 +65,7 @@ public class A_Star {
                 //exdebug = printCostException(openSet);
                 Collections.sort(openSet, new NodeCostComparator());
             } catch (Exception ex) {
+                System.out.println("Error en comparador A* Agente: " + agentAlias);
                 //System.out.println(exdebug);
                 //throw new RuntimeException(ex.toString());
             }
@@ -133,7 +135,7 @@ public class A_Star {
          ids[6] = nodeId + XSize - 1;//downleft
          ids[7] = nodeId + XSize + 1;//downright*/
         for (int i : ids) {
-            if (i >= 0 && i < nodes.length) {
+            if (i >= 0 && i < nodes.length && !isALateralPoint(i)) {
                 if (!nodes[i].getType().equals(AsNodeType.Obstacle)) {
                     if (!closedSet.contains(i)) {
                         neighbours.add(i);
@@ -176,5 +178,11 @@ public class A_Star {
             str += "\r\n";
         }
         return str;
+    }
+    
+    public boolean isALateralPoint(int idx) {
+        int y = (int) (idx / XSize);
+        int x = idx - (y * XSize);
+        return (x == 0 || x == XSize-1);
     }
 }

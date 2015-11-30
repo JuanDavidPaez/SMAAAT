@@ -68,8 +68,8 @@ public class Character3D implements Savable {
         node.setLocalTranslation(position);
         node.attachChild(createSpatialGeometry(name));
 
-        Utils.createDebugArrow(app.getAssetManager(), new Vector3f(0,height/2,0), new Vector3f(0, 0, 0.5f), node);
-        Utils.createCircle(app.getAssetManager(), new Vector3f(0,Const.FloorGridHeight*2,0), getSightRange()+radius, node, Utils.getColorForAgentGeometry(type));
+        Utils.createDebugArrow(app.getAssetManager(), new Vector3f(0, height / 2, 0), new Vector3f(0, 0, 0.5f), node);
+        Utils.createCircle(app.getAssetManager(), new Vector3f(0, Const.FloorGridHeight * 2, 0), getSightRange() + radius, node, Utils.getColorForAgentGeometry(type));
 
         ((Spatial) (node)).setUserData(Const.Character, this);
 
@@ -162,7 +162,7 @@ public class Character3D implements Savable {
     public AgentType getAgentType() {
         return agentType;
     }
-    
+
     public float getSightRange() {
         return attributes.sightRange;
     }
@@ -208,8 +208,7 @@ public class Character3D implements Savable {
                 if (!s.equals(this.node) && !s.getName().toLowerCase().contains(Const.DebugWord)) {
                     Vector3f charPosition = s.getWorldTranslation().clone();
                     charPosition.setY(myPosition.y);
-                    float distance = myPosition.distance(charPosition);
-                    if (distance <= (this.getSightRange() + this.radius)) {
+                    if(objectIsInsideSighRange(myPosition, charPosition)){
                         /*Corrimiento del punto fuera del volumen de la geometria del character*/
                         Vector3f direction = charPosition.subtract(myPosition).normalize();
                         Vector3f rayOrigin = myPosition.add(direction.mult(radius + (radius * 0.1f)));
@@ -234,6 +233,17 @@ public class Character3D implements Savable {
             }
         }
         return seenObjects;
+    }
+
+    private boolean objectIsInsideSighRange(Vector3f _myPos, Vector3f _objPos) {
+        float range = (this.getSightRange() + this.radius);
+        boolean ok = false;
+        Floor3D f = getApp().getFloor3D();
+        Vector3f myPos = f.GridPointToVector3f(f.Vector3fToGridPoint(_myPos));
+        Vector3f objPos = f.GridPointToVector3f(f.Vector3fToGridPoint(_objPos));
+        float distance = myPos.distance(objPos);
+        ok = (distance <= range);
+        return ok;
     }
 
     private boolean isAbleToShoot() {
@@ -298,8 +308,8 @@ public class Character3D implements Savable {
             removeFromWorld();
         }
     }
-    
-    protected void removeFromWorld(){
+
+    protected void removeFromWorld() {
         WalkerNavControl c = this.node.getControl(WalkerNavControl.class);
         c.setEnabled(false);
         this.node.removeFromParent();
@@ -314,8 +324,8 @@ public class Character3D implements Savable {
         wid.seenObjects = this.getSeenCharacters();
         getApp().getWorldAgent().notifyAgentWorldInfoData(this, wid);
     }
-    
-    public void hostageReachExit(){
+
+    public void hostageReachExit() {
         getApp().getWorldAgent().notifyHostageReachExit(this);
         removeFromWorld();
     }

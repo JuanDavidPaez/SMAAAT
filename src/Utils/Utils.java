@@ -87,7 +87,7 @@ public class Utils {
         }
         return geo;
     }
-    
+
     public static Geometry createCircle(AssetManager assetManager, Vector3f pos, float radius, Node node, ColorRGBA color) {
 
         Circle3d c = new Circle3d(radius);
@@ -96,6 +96,19 @@ public class Utils {
         mat.setColor("Color", color);
         geo.setMaterial(mat);
         geo.setLocalTranslation(pos);
+        if (node != null) {
+            node.attachChild(geo);
+        }
+        return geo;
+    }
+
+    public static Geometry createSquare(AssetManager assetManager, Vector3f pos, float radius, Node node, ColorRGBA color) {
+
+        Square3d c = new Square3d(pos,radius);
+        Geometry geo = new Geometry(Const.DebugWord + "Square", c);
+        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.setColor("Color", color);
+        geo.setMaterial(mat);
         if (node != null) {
             node.attachChild(geo);
         }
